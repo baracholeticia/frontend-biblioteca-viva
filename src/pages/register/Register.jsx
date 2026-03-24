@@ -19,11 +19,6 @@ export function Register() {
             </div>
 
             <div className="input-group">
-              <label htmlFor="matricula-cadastro">Número de Matrícula</label>
-              <input type="text" id="matricula-cadastro" placeholder="Digite seu número de matrícula" />
-            </div>
-
-            <div className="input-group">
               <label htmlFor="email">E-mail</label>
               <input type="email" id="email" placeholder="Digite seu e-mail" />
             </div>

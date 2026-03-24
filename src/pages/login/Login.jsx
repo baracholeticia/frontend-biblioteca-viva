@@ -15,8 +15,8 @@ export function Login() {
 
           <form>
             <div className="input-group">
-              <label htmlFor="matricula">Matrícula ou E-mail</label>
-              <input type="text" id="matricula" placeholder="Digite sua matrícula ou e-mail" />
+              <label htmlFor="matricula">E-mail</label>
+              <input type="text" id="matricula" placeholder="Digite seu e-mail" />
             </div>
 
             <div className="input-group">
