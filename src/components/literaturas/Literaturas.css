@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+
+.lit-section {
+    background-color: #f0f0f0;
+    padding: 64px 0 80px;
+    width: 100%;
+}
+
+.lit-container {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 80px;
+    box-sizing: border-box;
+}
+
+.lit-hero {
+    text-align: center;
+    margin-bottom: 56px;
+}
+
+.lit-hero__title {
+    font-family: 'Poppins', system-ui, sans-serif;
+    font-style: normal;
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: #1a2f5e;
+    margin: 0 0 12px;
+    letter-spacing: 0;
+    line-height: 1.15;
+}
+
+.lit-hero__subtitle {
+    font-size: 1rem;
+    color: #666;
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+}
+
+
+.lit-category {
+    margin-bottom: 40px;
+}
+
+.lit-category__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.lit-category__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lit-category__icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.lit-category__name {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #1a2f5e;
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.lit-category__link {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #d93025;
+    text-decoration: none;
+    transition: opacity 0.18s;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.lit-category__link:hover {
+    opacity: 0.7;
+}
+
+.lit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+@media (max-width: 1024px) {
+    .lit-container {
+        padding: 0 40px;
+    }
+}
+
+@media (max-width: 880px) {
+    .lit-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .lit-container {
+        padding: 0 24px;
+    }
+}
+
+@media (max-width: 540px) {
+    .lit-grid {
+        grid-template-columns: 1fr;
+    }
+    .lit-hero__title {
+        font-size: 2.2rem;
+    }
+    .lit-container {
+        padding: 0 16px;
+    }
+}
+
+.lit-card {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    cursor: pointer;
+    background: #ccc;
+}
+
+.lit-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #f5a623;
+    transform: scaleX(0);
+    transition: transform 0.22s ease;
+}
+
+.lit-card:hover::after {
+    transform: scaleX(1);
+}
+
+.lit-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.lit-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.lit-card__overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 48px 18px 18px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, transparent 100%);
+}
+
+.lit-card__title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 4px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.lit-card__author {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.lit-card__like {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 12px 6px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #d93025;
+    cursor: pointer;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
+    transition: transform 0.15s, box-shadow 0.15s;
+    line-height: 1;
+}
+
+.lit-card__like:hover {
+    transform: scale(1.07);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+.lit-card__like--active svg {
+    fill: #d93025;
+}

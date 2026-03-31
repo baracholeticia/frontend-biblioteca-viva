@@ -1,0 +1,235 @@
+/* ===========================
+   CONTOS E CRÔNICAS
+=========================== */
+
+.cc-section {
+    background-color: #f0f0f0;
+    padding: 0 0 80px;
+    width: 100%;
+}
+
+.cc-container {
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 80px;
+    box-sizing: border-box;
+}
+
+.cc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+}
+
+/* ── CATEGORY HEADER ── */
+.cc-category__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.cc-category__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cc-category__icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.cc-category__name {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #1a2f5e;
+    margin: 0;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.cc-category__link {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #d93025;
+    text-decoration: none;
+    transition: opacity 0.18s;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.cc-category__link:hover {
+    opacity: 0.7;
+}
+
+/* ── CONTO CARD ── */
+.cc-conto-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    border-left: 4px solid #d93025;
+    cursor: pointer;
+    transition: border-left-color 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 14px;
+}
+
+.cc-conto-card:last-child {
+    margin-bottom: 0;
+}
+
+.cc-conto-card:hover {
+    border-left-color: #f5a623;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.cc-conto-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cc-conto-card__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a2f5e;
+    margin: 0;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.cc-conto-card__author {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.cc-conto-card__tag {
+    display: inline-block;
+    background: #f0f0f0;
+    color: #444;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: 'Poppins', system-ui, sans-serif;
+    width: fit-content;
+}
+
+.cc-conto-card__star {
+    background: #fef3d0;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 12px 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #b8860b;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.cc-conto-card__star:hover {
+    transform: scale(1.08);
+}
+
+/* ── CRÔNICA CARD ── */
+.cc-cronica-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+    margin-bottom: 14px;
+}
+
+.cc-cronica-card:last-child {
+    margin-bottom: 0;
+}
+
+.cc-cronica-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.cc-cronica-card:hover .cc-cronica-card__icon-box {
+    background: #f5a623;
+}
+
+.cc-cronica-card:hover .cc-cronica-card__title {
+    color: #d93025;
+}
+
+.cc-cronica-card__icon-box {
+    width: 52px;
+    height: 52px;
+    background: #1a2f5e;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    transition: background 0.2s ease;
+}
+
+.cc-cronica-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cc-cronica-card__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a2f5e;
+    margin: 0 0 4px;
+    font-family: 'Poppins', system-ui, sans-serif;
+    transition: color 0.2s ease;
+}
+
+.cc-cronica-card__author {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+    font-family: 'Poppins', system-ui, sans-serif;
+}
+
+.cc-cronica-card__date {
+    font-size: 0.8rem;
+    color: #999;
+    font-family: 'Poppins', system-ui, sans-serif;
+    flex-shrink: 0;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+    .cc-container {
+        padding: 0 40px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cc-grid {
+        grid-template-columns: 1fr;
+    }
+    .cc-container {
+        padding: 0 24px;
+    }
+}
+
+@media (max-width: 540px) {
+    .cc-container {
+        padding: 0 16px;
+    }
+}
