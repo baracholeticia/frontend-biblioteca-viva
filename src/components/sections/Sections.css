@@ -9,6 +9,7 @@
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 12px;
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 .title-line {
@@ -24,6 +25,7 @@
   font-size: 16px;
   color: #42526e;
   margin-bottom: 60px;
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 .grid {
@@ -43,10 +45,13 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .card::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   bottom: 0;
@@ -72,11 +77,13 @@
   margin-bottom: 6px;
   color: #1a6fc4;
   line-height: 1.35;
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 .card span {
   font-size: 13px;
   color: #6b778c;
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 .icon {
@@ -104,11 +111,9 @@
 @media (max-width: 1100px) {
   .grid { grid-template-columns: repeat(4, 1fr); }
 }
-
 @media (max-width: 800px) {
   .grid { grid-template-columns: repeat(3, 1fr); }
 }
-
 @media (max-width: 560px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
 }
