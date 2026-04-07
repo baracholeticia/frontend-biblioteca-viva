@@ -1,187 +1,115 @@
+import { Link } from 'react-router-dom';
+import { posts } from '../../data/posts';
+import { IconBarChart, IconPalette, IconVideo, IconHand } from '../icons';
 import './Multimidia.css';
 
-const infograficos = [
-    { id: 1, title: 'Desmatamento no Nordeste', author: 'Lucas Mendes', turma: '2º A' },
-    { id: 2, title: 'Água e Saneamento no Sertão', author: 'Maria Clara', turma: '1º B' },
-    { id: 3, title: 'Energia Solar em Pernambuco', author: 'João Vitor', turma: '3º C' },
-];
-
-const artes = [
-    { id: 1, title: 'Cores do Sertão', author: 'Camila Santos', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=400&fit=crop' },
-    { id: 2, title: 'Jardim Nordestino', author: 'Rafael Costa', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop' },
-    { id: 3, title: 'Pinceladas do Agreste', author: 'Beatriz Lima', image: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=400&fit=crop' },
-    { id: 4, title: 'Rosto da Cidade', author: 'Pedro Silva', image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=400&fit=crop' },
-];
-
-const videos = [
-    { id: 1, title: 'Curta: A Seca e o Sonho', author: 'Ana Paula & equipe', duration: '8min' },
-    { id: 2, title: 'Vídeo-Poema: Raízes do Sertão', author: 'Gabriel Lima', duration: '3min' },
-    { id: 3, title: 'Entrevista: Vozes da Comunidade', author: 'Jornal da Escola', duration: '12min' },
-];
-
-const libras = [
-    { id: 1, title: 'O Menino que Plantou Estrelas', interpreter: 'Júlia Santos', duration: '5min' },
-    { id: 2, title: 'Contos do Agreste', interpreter: 'Lucas Oliveira', duration: '7min' },
-    { id: 3, title: 'A Lenda do Rio Capibaribe', interpreter: 'Mariana Costa', duration: '4min' },
-];
-
-function BarChartIcon() {
-    return (
-        <svg className="mv-card__preview-icon" width="80" height="80" viewBox="0 0 24 24"
-             fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-            <line x1="2" y1="20" x2="22" y2="20" />
-        </svg>
-    );
-}
-
-function VideoIcon() {
-    return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-             stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 7l-7 5 7 5V7z"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-        </svg>
-    );
-}
-
-function HandIcon({ color = '#ffffff' }) {
-    return (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-             stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
-            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
-            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
-            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
-        </svg>
-    );
-}
-
 export function Multimidia() {
-    return (
-        <section className="mv-section">
-            <div className="mv-container">
+  const infograficosList = posts.filter(p => p.categoryId === 'infograficos').slice(0, 3);
+  const artesList = posts.filter(p => p.categoryId === 'artes').slice(0, 4);
+  const videosList = posts.filter(p => p.categoryId === 'videos').slice(0, 3);
+  const librasList = posts.filter(p => p.categoryId === 'libras').slice(0, 3);
 
-                {/* HERO */}
-                <div className="mv-hero">
-                    <h1 className="mv-hero__title">Multimídia e Criações Visuais</h1>
-                    <p className="mv-hero__subtitle">Infográficos, artes, vídeos e literatura em Libras</p>
-                </div>
+  return (
+    <section className="mv-section">
+      <div className="mv-container">
+        
+        <div className="mv-hero">
+          <h1 className="mv-hero__title">Multimídia e Criações Visuais</h1>
+          <p className="mv-hero__subtitle">Infográficos, artes, vídeos e literatura em Libras</p>
+        </div>
 
-                {/* INFOGRÁFICOS */}
-                <div className="mv-category__header">
-                    <span className="mv-category__icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                             stroke="#d93025" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="20" x2="18" y2="10" />
-                            <line x1="12" y1="20" x2="12" y2="4" />
-                            <line x1="6" y1="20" x2="6" y2="14" />
-                            <line x1="2" y1="20" x2="22" y2="20" />
-                        </svg>
-                    </span>
-                    <h2 className="mv-category__name">Infográficos em Foco</h2>
-                </div>
+        {/* Infográficos */}
+        <div className="mv-category__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="mv-category__icon"><IconBarChart size={22} color="#d93025" /></span>
+            <h2 className="mv-category__name">Infográficos em Foco</h2>
+          </div>
+          <Link to="/categoria/infograficos" style={{ color: '#d93025', fontWeight: 600, fontSize: '0.95rem', textDecoration: 'none' }}>Ver todos →</Link>
+        </div>
 
-                <div className="mv-grid mv-grid--3 mv-mb">
-                    {infograficos.map((item) => (
-                        <div className="mv-card" key={item.id}>
-                            <div className="mv-card__preview">
-                                <BarChartIcon />
-                            </div>
-                            <div className="mv-card__info">
-                                <p className="mv-card__title">{item.title}</p>
-                                <p className="mv-card__author">Criado por {item.author}</p>
-                                <p className="mv-card__turma">{item.turma}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+        <div className="mv-grid mv-grid--3 mv-mb">
+          {infograficosList.map((item) => (
+            <Link to={`/${item.categoryId}/${item.id}`} className="mv-card" key={item.id} style={{ textDecoration: 'none' }}>
+              <div className="mv-card__preview">
+                <IconBarChart size={60} color="#ffffff" />
+              </div>
+              <div className="mv-card__info">
+                <p className="mv-card__title">{item.title}</p>
+                <p className="mv-card__author">Criado por {item.author}</p>
+                <p className="mv-card__turma">{item.excerpt}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
 
-                {/* GALERIA DE ARTES */}
-                <div className="mv-category__header">
-                    <span className="mv-category__icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                             stroke="#d93025" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="13.5" cy="6.5" r="1"/>
-                            <circle cx="17.5" cy="10.5" r="1"/>
-                            <circle cx="8.5" cy="7.5" r="1"/>
-                            <circle cx="6.5" cy="12.5" r="1"/>
-                            <path d="M12 2C6.48 2 2 6.48 2 12c0 2.76 1.12 5.26 2.93 7.07C6.93 21.07 9 22 12 22c1.1 0 2-.9 2-2v-1c0-.55.45-1 1-1h1c3.31 0 6-2.69 6-6 0-5.52-4.48-10-10-10z"/>
-                        </svg>
-                    </span>
-                    <h2 className="mv-category__name">Galeria de Artes</h2>
-                </div>
+        {/* Galeria de Artes */}
+        <div className="mv-category__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="mv-category__icon"><IconPalette size={22} color="#d93025" /></span>
+            <h2 className="mv-category__name">Galeria de Artes</h2>
+          </div>
+          <Link to="/categoria/artes" style={{ color: '#d93025', fontWeight: 600, fontSize: '0.95rem', textDecoration: 'none' }}>Ver todas →</Link>
+        </div>
 
-                <div className="mv-grid mv-grid--4 mv-mb">
-                    {artes.map((item) => (
-                        <div className="mv-arte-card" key={item.id}>
-                            <img src={item.image} alt={item.title} className="mv-arte-card__image" />
-                            <p className="mv-arte-card__title">{item.title}</p>
-                            <p className="mv-arte-card__author">{item.author}</p>
-                        </div>
-                    ))}
-                </div>
+        <div className="mv-grid mv-grid--4 mv-mb">
+          {artesList.map((item) => (
+            <Link to={`/${item.categoryId}/${item.id}`} className="mv-arte-card" key={item.id} style={{ textDecoration: 'none' }}>
+              <img src={item.image} alt={item.title} className="mv-arte-card__image" />
+              <p className="mv-arte-card__title">{item.title}</p>
+              <p className="mv-arte-card__author">{item.author}</p>
+            </Link>
+          ))}
+        </div>
 
-                {/* VÍDEOS + LIBRAS */}
-                <div className="mv-grid mv-grid--2">
-
-                    {/* CURTAS E VÍDEOS */}
-                    <div>
-                        <div className="mv-category__header">
-                            <span className="mv-category__icon">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                                     stroke="#d93025" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M23 7l-7 5 7 5V7z"/>
-                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                                </svg>
-                            </span>
-                            <h2 className="mv-category__name">Curtas e Vídeos Autorais</h2>
-                        </div>
-                        <div className="mv-list">
-                            {videos.map((item) => (
-                                <div className="mv-list-item" key={item.id}>
-                                    <div className="mv-list-item__icon mv-list-item__icon--red">
-                                        <VideoIcon />
-                                    </div>
-                                    <div className="mv-list-item__info">
-                                        <p className="mv-list-item__title">{item.title}</p>
-                                        <p className="mv-list-item__sub">{item.author}</p>
-                                        <span className="mv-list-item__badge">{item.duration}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* LITERATURA EM LIBRAS */}
-                    <div>
-                        <div className="mv-category__header">
-                            <span className="mv-category__icon">
-                                <HandIcon color="#d93025" />
-                            </span>
-                            <h2 className="mv-category__name">Literatura em Libras</h2>
-                        </div>
-                        <div className="mv-list">
-                            {libras.map((item) => (
-                                <div className="mv-list-item" key={item.id}>
-                                    <div className="mv-list-item__icon mv-list-item__icon--navy">
-                                        <HandIcon />
-                                    </div>
-                                    <div className="mv-list-item__info">
-                                        <p className="mv-list-item__title">{item.title}</p>
-                                        <p className="mv-list-item__sub">Interpretado por {item.interpreter}</p>
-                                        <span className="mv-list-item__badge">{item.duration}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                </div>
-
+        <div className="mv-grid mv-grid--2">
+          {/* Vídeos Autorais */}
+          <div>
+            <div className="mv-category__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="mv-category__icon"><IconVideo size={22} color="#d93025" /></span>
+                <h2 className="mv-category__name">Curtas e Vídeos Autorais</h2>
+              </div>
+              <Link to="/categoria/videos" style={{ color: '#d93025', fontWeight: 600, fontSize: '0.95rem', textDecoration: 'none' }}>Ver todos →</Link>
             </div>
-        </section>
-    );
+            <div className="mv-list">
+              {videosList.map((item) => (
+                <Link to={`/${item.categoryId}/${item.id}`} className="mv-list-item" key={item.id} style={{ textDecoration: 'none' }}>
+                  <div className="mv-list-item__icon mv-list-item__icon--red"><IconVideo size={24} color="#fff" /></div>
+                  <div className="mv-list-item__info">
+                    <p className="mv-list-item__title">{item.title}</p>
+                    <p className="mv-list-item__sub">{item.author}</p>
+                    <span className="mv-list-item__badge">{item.duration}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Literatura em Libras */}
+          <div>
+            <div className="mv-category__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="mv-category__icon"><IconHand size={22} color="#d93025" /></span>
+                <h2 className="mv-category__name">Literatura em Libras</h2>
+              </div>
+              <Link to="/categoria/libras" style={{ color: '#d93025', fontWeight: 600, fontSize: '0.95rem', textDecoration: 'none' }}>Ver todas →</Link>
+            </div>
+            <div className="mv-list">
+              {librasList.map((item) => (
+                <Link to={`/${item.categoryId}/${item.id}`} className="mv-list-item" key={item.id} style={{ textDecoration: 'none' }}>
+                  <div className="mv-list-item__icon mv-list-item__icon--navy"><IconHand size={24} color="#fff" /></div>
+                  <div className="mv-list-item__info">
+                    <p className="mv-list-item__title">{item.title}</p>
+                    <p className="mv-list-item__sub">Interpretado por {item.author}</p>
+                    <span className="mv-list-item__badge">{item.duration}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
 }

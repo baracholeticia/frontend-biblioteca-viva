@@ -6,7 +6,7 @@ export function Footer() {
       <section className="invite">
         <h2>Faça Parte da Nossa Comunidade</h2>
         <p>Compartilhe suas produções culturais e inspire outros estudantes.</p>
-        <button className="primary-btn">Começar a Contribuir</button>
+  
       </section>
 
       <footer className="footer">

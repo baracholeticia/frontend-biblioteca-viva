@@ -1,17 +1,22 @@
 .topbar {
   background-color: #0a2a57;
-  padding: 18px 40px;
+  padding: 0 40px;
+  height: 64px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
-  z-index: 200;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
 }
 
 .logo__icon {
@@ -21,7 +26,7 @@
 }
 
 .logo span {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #ffffff;
@@ -56,15 +61,22 @@
 .red-line {
   height: 4px;
   background-color: #d62828;
-  position: relative;
-  z-index: 200;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  z-index: 499;
+}
+
+.header-spacer {
+  height: 68px;
 }
 
 .menu-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 150;
+  z-index: 450;
   animation: fadeIn 0.2s ease;
 }
 
@@ -80,7 +92,7 @@
   width: 300px;
   height: 100vh;
   background: #0d2d5e;
-  z-index: 160;
+  z-index: 460;
   padding: 32px 0;
   display: flex;
   flex-direction: column;
@@ -130,7 +142,6 @@
   cursor: pointer;
   text-align: left;
   transition: background 0.18s, color 0.18s, border-color 0.18s;
-  letter-spacing: 0.01em;
 }
 
 .menu-drawer__item:hover {
@@ -142,7 +153,6 @@
   color: #f0a500;
 }
 
-/* item ativo (URL atual) */
 .menu-drawer__item--active {
   background: rgba(255, 255, 255, 0.12);
   color: #f0a500;
