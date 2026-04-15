@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { posts } from '../../data/posts';
+import { getAllWorks } from '../../services/workService';
 import { IconDoc, IconFeather, IconStar } from '../icons';
 import './ContosCronicas.css';
 
-function ContoCard({ id, categoryId, title, author }) {
+function ContoCard({ id, title, author }) {
   const [starred, setStarred] = useState(false);
 
   const handleStar = (e) => {
@@ -13,7 +13,7 @@ function ContoCard({ id, categoryId, title, author }) {
   };
 
   return (
-    <Link to={`/${categoryId}/${id}`} className="cc-conto-card" style={{ textDecoration: 'none' }}>
+    <Link to={`/contos/${id}`} className="cc-conto-card" style={{ textDecoration: 'none' }}>
       <div className="cc-conto-card__top">
         <p className="cc-conto-card__title">{title}</p>
         <button className="cc-conto-card__star" onClick={handleStar} aria-label="Favoritar">
@@ -22,15 +22,15 @@ function ContoCard({ id, categoryId, title, author }) {
         </button>
       </div>
       <p className="cc-conto-card__author">por {author}</p>
-      {/* Usando o excerpt abreviado para substituir a 'tag' estática */}
-      <span className="cc-conto-card__tag">Ficção</span>
+      <span className="cc-conto-card__tag">Conto</span>
     </Link>
   );
 }
 
-function CronicaCard({ id, categoryId, title, author, date }) {
+function CronicaCard({ id, title, author, publicationDate }) {
+  const date = publicationDate ? new Date(publicationDate).toLocaleDateString('pt-BR') : '';
   return (
-    <Link to={`/${categoryId}/${id}`} className="cc-cronica-card" style={{ textDecoration: 'none' }}>
+    <Link to={`/cronicas/${id}`} className="cc-cronica-card" style={{ textDecoration: 'none' }}>
       <div className="cc-cronica-card__icon-box">
         <IconFeather size={24} color="#ffffff" />
       </div>
@@ -44,8 +44,26 @@ function CronicaCard({ id, categoryId, title, author, date }) {
 }
 
 export function ContosCronicas() {
-  const contosList = posts.filter(p => p.categoryId === 'contos').slice(0, 3);
-  const cronicasList = posts.filter(p => p.categoryId === 'cronicas').slice(0, 3);
+  const [contos, setContos] = useState([]);
+  const [cronicas, setCronicas] = useState([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [contosData, cronicasData] = await Promise.all([
+          getAllWorks('Tale'),
+          getAllWorks('ShortStory')
+        ]);
+        setContos(contosData.slice(0, 3));
+        setCronicas(cronicasData.slice(0, 3));
+      } catch (error) {
+        console.error("Erro ao buscar Contos e Crônicas:", error);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (contos.length === 0 && cronicas.length === 0) return null;
 
   return (
     <section className="cc-section">
@@ -62,9 +80,10 @@ export function ContosCronicas() {
               </div>
               <Link to="/categoria/contos" className="cc-category__link">Ver todos →</Link>
             </div>
-            {contosList.map((c) => (
+            {contos.map((c) => (
               <ContoCard key={c.id} {...c} />
             ))}
+            {contos.length === 0 && <p style={{color: '#666'}}>Nenhum conto publicado.</p>}
           </div>
 
           <div>
@@ -77,9 +96,10 @@ export function ContosCronicas() {
               </div>
               <Link to="/categoria/cronicas" className="cc-category__link">Ver todos →</Link>
             </div>
-            {cronicasList.map((c) => (
+            {cronicas.map((c) => (
               <CronicaCard key={c.id} {...c} />
             ))}
+            {cronicas.length === 0 && <p style={{color: '#666'}}>Nenhuma crônica publicada.</p>}
           </div>
 
         </div>

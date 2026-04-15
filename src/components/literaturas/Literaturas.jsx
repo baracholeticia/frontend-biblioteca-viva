@@ -1,26 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { posts } from '../../data/posts';
+import { getAllWorks } from '../../services/workService';
 import { IconBook, IconHeart } from '../icons';
 import './Literaturas.css';
 
-function BookCard({ id, categoryId, title, author, initialLikes, image }) {
+function BookCard({ id, title, author, likeCount, url }) {
   const [liked, setLiked] = useState(false);
-  const [count, setCount] = useState(initialLikes);
+  const [count, setCount] = useState(likeCount || 0);
 
   function handleLike(e) {
     e.preventDefault(); 
-    if (liked) {
-      setCount((c) => c - 1);
-    } else {
-      setCount((c) => c + 1);
-    }
+    setCount((c) => liked ? c - 1 : c + 1);
     setLiked(!liked);
   }
 
   return (
-    <Link to={`/${categoryId}/${id}`} className="lit-card" style={{ textDecoration: 'none' }}>
-      <img src={image} alt={title} className="lit-card__image" />
+    <Link to={`/cordeis/${id}`} className="lit-card" style={{ textDecoration: 'none' }}>
+      <div className="lit-card__image" style={{backgroundColor: '#1a2f5e', display: 'flex', alignItems:'center', justifyContent:'center', height: '100%'}}>
+        {url ? <img src={url} alt={title} style={{width: '100%', height:'100%', objectFit: 'cover'}}/> : <IconBook size={48} color="rgba(255,255,255,0.2)"/>}
+      </div>
 
       <button
         className={`lit-card__like${liked ? ' lit-card__like--active' : ''}`}
@@ -40,7 +38,21 @@ function BookCard({ id, categoryId, title, author, initialLikes, image }) {
 }
 
 export function Literaturas() {
-  const cordeisList = posts.filter(p => p.categoryId === 'cordeis' && p.image).slice(0, 3);
+  const [cordeis, setCordeis] = useState([]);
+
+  useEffect(() => {
+    async function fetchCordeis() {
+      try {
+        const data = await getAllWorks('Cordel');
+        setCordeis(data.slice(0, 3));
+      } catch (error) {
+        console.error("Erro ao buscar Cordéis:", error);
+      }
+    }
+    fetchCordeis();
+  }, []);
+
+  if (cordeis.length === 0) return null;
 
   return (
     <section className="lit-section">
@@ -66,7 +78,7 @@ export function Literaturas() {
           </div>
 
           <div className="lit-grid">
-            {cordeisList.map((book) => (
+            {cordeis.map((book) => (
               <BookCard key={book.id} {...book} />
             ))}
           </div>
