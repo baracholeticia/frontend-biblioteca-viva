@@ -1,15 +1,58 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { categories } from '../../data/categories';
-import { getPostsByCategory } from '../../data/posts';
+import { getAllWorks } from '../../services/workService';
 import { IconPencil, IconCalendar, IconHeart, IconMessage, IconDoc } from '../../components/icons';
 import './Category.css';
+
+const typeMap = {
+  'redacoes': 'Essay',
+  'cordeis': 'Cordel',
+  'contos': 'Tale',
+  'cronicas': 'ShortStory',
+  'infograficos': 'Infographic',
+  'artes': 'Art',
+  'videos': 'Multimedia',
+  'libras': 'LibraLiterature',
+  'jornal': 'Article'
+};
 
 export function Category() {
   const { id } = useParams();
   const currentCategory = categories.find((cat) => cat.id === id);
-  const categoryPosts = getPostsByCategory(id);
+  
+  const [works, setWorks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function fetchCategoryWorks() {
+      if (!currentCategory) return;
+      
+      try {
+        setLoading(true);
+        setError('');
+        const backendType = typeMap[id];
+        // Busca as obras filtrando pelo tipo no back-end
+        const data = await getAllWorks(backendType);
+        setWorks(data);
+      } catch (err) {
+        console.error("Erro ao buscar obras da categoria:", err);
+        setError('Não foi possível carregar as publicações desta categoria.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategoryWorks();
+  }, [id, currentCategory]);
+
+  const formatDate = (isoDate) => {
+    if (!isoDate) return '';
+    return new Date(isoDate).toLocaleDateString('pt-BR');
+  };
 
   if (!currentCategory) {
     return (
@@ -37,11 +80,19 @@ export function Category() {
           {currentCategory.icon}
         </div>
         <h1>{currentCategory.title}</h1>
-        <p>{categoryPosts.length > 0 ? `${categoryPosts.length} publicações` : 'Nenhuma publicação ainda'}</p>
+        <p>{works.length > 0 ? `${works.length} publicações` : 'Buscando publicações...'}</p>
       </section>
 
       <section className="category-content">
-        {categoryPosts.length === 0 ? (
+        {loading ? (
+          <div className="empty-state">
+            <p>Carregando publicações...</p>
+          </div>
+        ) : error ? (
+          <div className="empty-state">
+            <p style={{ color: '#d62828' }}>{error}</p>
+          </div>
+        ) : works.length === 0 ? (
           <div className="empty-state">
             <span className="empty-state__icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
               <IconDoc size={48} color="#94a3b8" />
@@ -51,36 +102,31 @@ export function Category() {
           </div>
         ) : (
           <div className="posts-grid">
-            {categoryPosts.map((post) => (
-              <Link
-                to={`/${id}/${post.id}`}
-                key={post.id}
-                className="post-card"
-              >
-                {/* Renderização Condicional da Imagem */}
-                {post.image && (
-                  <img src={post.image} alt={post.title} className="post-card-image" />
+            {works.map((post) => (
+              <Link to={`/${id}/${post.id}`} key={post.id} className="post-card">
+                {post.url && (
+                  <img src={post.url} alt={post.title} className="post-card-image" />
                 )}
                 
-                <span className="post-card-category">{post.category}</span>
+                <span className="post-card-category">{currentCategory.title}</span>
                 <h2 className="post-card-title">{post.title}</h2>
-                <p className="post-card-excerpt">{post.excerpt}</p>
+                <p className="post-card-excerpt">{post.description}</p>
                 
                 <div className="post-card-footer">
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <IconPencil size={14} /> {post.author}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <IconCalendar size={14} /> {post.date}
+                    <IconCalendar size={14} /> {formatDate(post.publicationDate)}
                   </span>
                 </div>
                 
                 <div className="post-card-stats">
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <IconHeart size={14} color="#d62828" /> {post.initialLikes}
+                    <IconHeart size={14} color="#d62828" /> {post.likeCount || 0}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <IconMessage size={14} /> {post.initialComments.length}
+                    <IconMessage size={14} /> {post.commentCount || 0}
                   </span>
                 </div>
               </Link>

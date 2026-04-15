@@ -1,20 +1,73 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from './AdminLayout';
-import { posts } from '../../data/posts';
-import { mockUsers } from '../../data/mockUsers';
+import { getAllUsers, approveUser, rejectUser } from '../../services/adminService';
+import { getAllWorks } from '../../services/workService';
+import { useToast } from '../../context/ToastContext';
 import { IconDoc, IconMessage, IconUsers, IconCalendar, IconCheck, IconClose, IconHeart } from '../../components/icons';
 import './AdminLayout.css';
 
-const pendingUsers = mockUsers.filter(u => u.status === 'pending');
-
-const stats = [
-  { label: 'Total de Posts', value: posts.length, icon: <IconDoc size={28} />, color: '#d62828', link: '/admin/posts' },
-  { label: 'Comentários', value: posts.reduce((sum, p) => sum + p.initialComments.length, 0), icon: <IconMessage size={28} />, color: '#2563eb', link: '/admin/comentarios' },
-  { label: 'Usuários', value: mockUsers.length, icon: <IconUsers size={28} />, color: '#16a34a', link: '/admin/usuarios' },
-  { label: 'Cadastros Pendentes', value: pendingUsers.length, icon: <IconCalendar size={28} />, color: '#f77f00', link: '/admin/usuarios' },
-];
-
 export function AdminDashboard() {
+  const [users, setUsers] = useState([]);
+  const [works, setWorks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        const [usersData, worksData] = await Promise.all([
+          getAllUsers(),
+          getAllWorks()
+        ]);
+        setUsers(usersData);
+        setWorks(worksData);
+      } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+        showToast("Erro ao carregar dados. Você tem permissão de Admin?", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDashboardData();
+  }, [showToast]);
+
+  const handleApprove = async (id) => {
+    try {
+      await approveUser(id);
+      showToast("Usuário aprovado com sucesso!", "success");
+      setUsers(users.map(u => u.id === id ? { ...u, accountStatus: 'active' } : u));
+    } catch (error) {
+      console.error("Erro ao aprovar:", error); 
+      showToast("Erro ao aprovar usuário.", "error");
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await rejectUser(id);
+      showToast("Usuário rejeitado.", "success");
+      setUsers(users.map(u => u.id === id ? { ...u, accountStatus: 'rejected' } : u));
+    } catch (error) {
+      console.error("Erro ao rejeitar:", error); 
+      showToast("Erro ao rejeitar usuário.", "error");
+    }
+  };
+
+  const pendingUsers = users.filter(u => u.accountStatus === 'pending');
+  const totalComments = works.reduce((sum, w) => sum + (w.commentCount || 0), 0);
+
+  const stats = [
+    { label: 'Total de Posts', value: works.length, icon: <IconDoc size={28} />, color: '#d62828', link: '/admin/posts' },
+    { label: 'Comentários', value: totalComments, icon: <IconMessage size={28} />, color: '#2563eb', link: '/admin/comentarios' },
+    { label: 'Usuários', value: users.length, icon: <IconUsers size={28} />, color: '#16a34a', link: '/admin/usuarios' },
+    { label: 'Pendentes', value: pendingUsers.length, icon: <IconCalendar size={28} />, color: '#f77f00', link: '/admin/usuarios' },
+  ];
+
+  if (loading) {
+    return <AdminLayout><h1 className="admin-page-title">Carregando painel...</h1></AdminLayout>;
+  }
+
   return (
     <AdminLayout>
       <h1 className="admin-page-title">Painel de Administração</h1>
@@ -47,7 +100,6 @@ export function AdminDashboard() {
               <tr>
                 <th>Nome</th>
                 <th>E-mail</th>
-                <th>Data</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -56,12 +108,11 @@ export function AdminDashboard() {
                 <tr key={u.id}>
                   <td style={{ fontWeight: 600 }}>{u.name}</td>
                   <td>{u.email}</td>
-                  <td>{u.date}</td>
                   <td style={{ display: 'flex', gap: 8 }}>
-                    <button className="action-btn btn-approve" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <button className="action-btn btn-approve" onClick={() => handleApprove(u.id)} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <IconCheck size={14} /> Aprovar
                     </button>
-                    <button className="action-btn btn-reject" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <button className="action-btn btn-reject" onClick={() => handleReject(u.id)} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <IconClose size={14} /> Rejeitar
                     </button>
                   </td>
@@ -89,16 +140,19 @@ export function AdminDashboard() {
             </tr>
           </thead>
           <tbody>
-            {posts.slice(0, 5).map(post => (
+            {works.slice(0, 5).map(post => (
               <tr key={post.id}>
                 <td style={{ fontWeight: 600, maxWidth: 240 }}>{post.title}</td>
                 <td>{post.author}</td>
-                <td><span className="badge badge-active">{post.category}</span></td>
+                <td><span className="badge badge-active">{post.type}</span></td>
                 <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <IconHeart size={16} color="#d62828" /> {post.initialLikes}
+                  <IconHeart size={16} color="#d62828" /> {post.likeCount || 0}
                 </td>
               </tr>
             ))}
+            {works.length === 0 && (
+              <tr><td colSpan="4" style={{textAlign:'center', padding:20}}>Nenhum post encontrado.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

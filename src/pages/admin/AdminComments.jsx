@@ -1,59 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { posts as initialPosts } from '../../data/posts';
+import { getAllWorks } from '../../services/workService';
+import { getComments, updateComment, deleteComment } from '../../services/commentService';
+import { useToast } from '../../context/ToastContext';
 import { IconPencil, IconTrash, IconSearch, IconCheck, IconClose } from '../../components/icons';
 import './AdminLayout.css';
 
-function flattenComments(posts) {
-  return posts.flatMap(post =>
-    post.initialComments.map(c => ({
-      ...c,
-      postId: post.id,
-      postTitle: post.title,
-    }))
-  );
-}
-
 export function AdminComments() {
-  const [posts, setPosts] = useState(initialPosts);
+  const [allComments, setAllComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
-  const [search, setSearch] = useState('');
+  const { showToast } = useToast();
 
-  const allComments = flattenComments(posts);
+  const fetchAllComments = useCallback(async () => {
+    try {
+      setLoading(true);
+      const works = await getAllWorks();
+      
+      const commentsPromises = works.map(async (work) => {
+        try {
+          const comments = await getComments(work.id);
+          return comments.map(c => ({ ...c, workId: work.id, workTitle: work.title }));
+        } catch (error) {
+          console.error(`Erro ao buscar comentários da obra ${work.id}:`, error);
+          return []; 
+        }
+      });
+      
+      const results = await Promise.all(commentsPromises);
+      const flattened = results.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setAllComments(flattened);
+    } catch (error) {
+      console.error("Erro na busca geral de obras:", error);
+      showToast("Erro ao carregar comentários do servidor.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchAllComments();
+  }, [fetchAllComments]);
+
   const filtered = allComments.filter(c =>
-    c.text.toLowerCase().includes(search.toLowerCase()) ||
-    c.author.toLowerCase().includes(search.toLowerCase()) ||
-    c.postTitle.toLowerCase().includes(search.toLowerCase())
+    c.content?.toLowerCase().includes(search.toLowerCase()) ||
+    c.authorName?.toLowerCase().includes(search.toLowerCase()) ||
+    c.workTitle?.toLowerCase().includes(search.toLowerCase())
   );
 
   const startEdit = (comment) => {
     setEditingId(comment.id);
-    setEditText(comment.text);
+    setEditText(comment.content);
   };
 
-  const saveEdit = (comment) => {
-    setPosts(posts.map(post => {
-      if (post.id !== comment.postId) return post;
-      return {
-        ...post,
-        initialComments: post.initialComments.map(c =>
-          c.id === comment.id ? { ...c, text: editText } : c
-        )
-      };
-    }));
-    setEditingId(null);
+  const saveEdit = async (comment) => {
+    try {
+      await updateComment(comment.workId, comment.id, editText);
+      showToast("Comentário atualizado!", "success");
+      setEditingId(null);
+      fetchAllComments(); // Recarrega a lista
+    } catch (error) {
+      console.error("Erro ao atualizar comentário:", error);
+      showToast("Erro ao atualizar comentário.", "error");
+    }
   };
 
-  const deleteComment = (comment) => {
-    if (window.confirm('Excluir este comentário?')) {
-      setPosts(posts.map(post => {
-        if (post.id !== comment.postId) return post;
-        return {
-          ...post,
-          initialComments: post.initialComments.filter(c => c.id !== comment.id)
-        };
-      }));
+  const handleDelete = async (comment) => {
+    if (window.confirm('Excluir este comentário permanentemente?')) {
+      try {
+        await deleteComment(comment.workId, comment.id);
+        showToast("Comentário excluído.", "success");
+        fetchAllComments();
+      } catch (error) {
+        console.error("Erro ao excluir comentário:", error);
+        showToast("Erro ao excluir comentário.", "error");
+      }
     }
   };
 
@@ -78,14 +101,18 @@ export function AdminComments() {
             <tr>
               <th>Autor</th>
               <th>Comentário</th>
-              <th>Post</th>
+              <th>Post Origem</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map(comment => (
-              <tr key={`${comment.postId}-${comment.id}`}>
-                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{comment.author}</td>
+            {loading ? (
+              <tr><td colSpan="4" style={{textAlign:'center'}}>Carregando comentários...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan="4" style={{textAlign:'center'}}>Nenhum comentário encontrado.</td></tr>
+            ) : filtered.map(comment => (
+              <tr key={comment.id}>
+                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{comment.authorName}</td>
                 <td style={{ maxWidth: 340 }}>
                   {editingId === comment.id ? (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -103,16 +130,16 @@ export function AdminComments() {
                       </button>
                     </div>
                   ) : (
-                    <span style={{ color: '#42526e', fontSize: 14 }}>{comment.text}</span>
+                    <span style={{ color: '#42526e', fontSize: 14 }}>{comment.content}</span>
                   )}
                 </td>
-                <td style={{ fontSize: 13, color: '#6b778c', maxWidth: 180 }}>{comment.postTitle}</td>
+                <td style={{ fontSize: 13, color: '#6b778c', maxWidth: 180 }}>{comment.workTitle}</td>
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="action-btn btn-edit" onClick={() => startEdit(comment)} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <IconPencil size={14} /> Editar
                     </button>
-                    <button className="action-btn btn-delete" onClick={() => deleteComment(comment)} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <button className="action-btn btn-delete" onClick={() => handleDelete(comment)} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <IconTrash size={14} /> Excluir
                     </button>
                   </div>
@@ -121,22 +148,11 @@ export function AdminComments() {
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <p style={{ textAlign: 'center', padding: '30px 0', color: '#6b778c' }}>Nenhum comentário encontrado.</p>
-        )}
       </div>
     </AdminLayout>
   );
 }
 
 const inputStyle = {
-  padding: '10px 14px',
-  border: '1px solid #dfe1e6',
-  borderRadius: 8,
-  fontSize: 14,
-  outline: 'none',
-  fontFamily: 'inherit',
-  color: '#0a2a57',
-  width: '100%',
-  boxSizing: 'border-box',
+  padding: '10px 14px', border: '1px solid #dfe1e6', borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit', color: '#0a2a57', width: '100%', boxSizing: 'border-box'
 };
