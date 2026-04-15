@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ToastProvider } from './context/ToastContext';
 import { Home } from './pages/home/Home';
 import { Category } from './pages/category/Category';
 import { Login } from './pages/login/Login';
@@ -11,22 +12,24 @@ import { AdminUsers } from './pages/admin/AdminUsers';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Rotas Públicas */}
-        <Route path="/" element={<Home />} />
-        <Route path="/categoria/:id" element={<Category />} />
-        <Route path="/:categoria/:id" element={<PostDetail />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/cadastro" element={<Register />} />
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Rotas Públicas */}
+          <Route path="/" element={<Home />} />
+          <Route path="/categoria/:id" element={<Category />} />
+          <Route path="/:categoria/:id" element={<PostDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Register />} />
 
-        {/* Rotas Administrativas */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/posts" element={<AdminPosts />} />
-        <Route path="/admin/comentarios" element={<AdminComments />} />
-        <Route path="/admin/usuarios" element={<AdminUsers />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Rotas Administrativas */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/posts" element={<AdminPosts />} />
+          <Route path="/admin/comentarios" element={<AdminComments />} />
+          <Route path="/admin/usuarios" element={<AdminUsers />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

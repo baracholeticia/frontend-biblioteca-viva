@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { register } from '../../services/authService';
+import { useToast } from '../../context/ToastContext';
 import '../login/Login.css'; 
 
 export function Register() {
@@ -10,19 +11,20 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   async function handleRegister(e) {
     e.preventDefault(); 
     setLoading(true);
     try {
       await register(name, email, password);
-      
-      alert('Cadastro realizado! Sua conta foi enviada para aprovação da administração.');
+      showToast('Cadastro realizado! Conta enviada para aprovação da administração.', 'success');
       navigate('/login');
     } catch (err) {
       console.error("Erro no cadastro:", err);
-      alert('Erro ao cadastrar. Verifique os dados ou se o e-mail já existe.');
+      showToast('Erro ao cadastrar. Verifique os dados ou se o e-mail já existe.', 'error');
     } finally {
       setLoading(false);
     }
