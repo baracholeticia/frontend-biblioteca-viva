@@ -26,9 +26,11 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isLoggedIn = !!localStorage.getItem('token');
+
   const activeSection = location.pathname.startsWith('/categoria/')
-    ? location.pathname.split('/')[2]
-    : null;
+      ? location.pathname.split('/')[2]
+      : null;
 
   const handleSection = (key) => {
     navigate(`/categoria/${key}`);
@@ -40,53 +42,66 @@ export function Header() {
     setMenuOpen(false);
   };
 
+  const handleUserClick = () => {
+    if (isLoggedIn) {
+      navigate('/perfil');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
-    <>
-      <header>
-        <nav className="topbar">
-          <div className="logo" onClick={handleLogoClick}>
-            <span className="logo__icon"><IconBook size={22} color="#f0a500" /></span>
-            <span>BIBLIOTECA VIVA</span>
-          </div>
-          <div className="icons">
-            <button className="icon-btn" title="Usuário" onClick={() => navigate('/login')}>
-              <IconUser size={20} />
-            </button>
-            <button
-              className={`icon-btn ${menuOpen ? 'icon-btn--active' : ''}`}
-              title="Menu"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label="Abrir menu"
-            >
-              {menuOpen ? <IconClose size={22} /> : <IconMenu size={22} />}
-            </button>
-          </div>
-        </nav>
-        <div className="red-line" />
-      </header>
-
-      <div className="header-spacer" />
-
-      {menuOpen && (
-        <div className="menu-overlay" onClick={() => setMenuOpen(false)} />
-      )}
-
-      <div className={`menu-drawer ${menuOpen ? 'menu-drawer--open' : ''}`}>
-        <p className="menu-drawer__title">Seções da Biblioteca</p>
-        <ul className="menu-drawer__list">
-          {sections.map((s) => (
-            <li key={s.key}>
+      <>
+        <header>
+          <nav className="topbar">
+            <div className="logo" onClick={handleLogoClick}>
+              <span className="logo__icon"><IconBook size={22} color="#f0a500" /></span>
+              <span>BIBLIOTECA VIVA</span>
+            </div>
+            <div className="icons">
               <button
-                className={`menu-drawer__item ${activeSection === s.key ? 'menu-drawer__item--active' : ''}`}
-                onClick={() => handleSection(s.key)}
+                  className={`icon-btn ${isLoggedIn ? 'icon-btn--logged' : ''}`}
+                  title={isLoggedIn ? 'Meu perfil' : 'Entrar'}
+                  onClick={handleUserClick}
               >
-                <span className="menu-drawer__item-icon">{s.icon}</span>
-                <span>{s.label}</span>
+                <IconUser size={20} />
+                {isLoggedIn && <span className="icon-btn__dot" />}
               </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
+              <button
+                  className={`icon-btn ${menuOpen ? 'icon-btn--active' : ''}`}
+                  title="Menu"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Abrir menu"
+              >
+                {menuOpen ? <IconClose size={22} /> : <IconMenu size={22} />}
+              </button>
+            </div>
+          </nav>
+          <div className="red-line" />
+        </header>
+
+        <div className="header-spacer" />
+
+        {menuOpen && (
+            <div className="menu-overlay" onClick={() => setMenuOpen(false)} />
+        )}
+
+        <div className={`menu-drawer ${menuOpen ? 'menu-drawer--open' : ''}`}>
+          <p className="menu-drawer__title">Seções da Biblioteca</p>
+          <ul className="menu-drawer__list">
+            {sections.map((s) => (
+                <li key={s.key}>
+                  <button
+                      className={`menu-drawer__item ${activeSection === s.key ? 'menu-drawer__item--active' : ''}`}
+                      onClick={() => handleSection(s.key)}
+                  >
+                    <span className="menu-drawer__item-icon">{s.icon}</span>
+                    <span>{s.label}</span>
+                  </button>
+                </li>
+            ))}
+          </ul>
+        </div>
+      </>
   );
 }

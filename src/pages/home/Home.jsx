@@ -15,14 +15,16 @@ export function Home() {
         <main>
             <Header />
             <Hero />
-            <Sections />
-            <Essays />
-            <Literaturas />
-            <ContosCronicas />
-            <ClubeLeitura />
-            <JornalEscola />
-            <Multimidia />
-            <MateriaisDestaque />
+            <div id="acervo">
+                <Sections />
+                <Essays />
+                <Literaturas />
+                <ContosCronicas />
+                <ClubeLeitura />
+                <JornalEscola />
+                <Multimidia />
+                <MateriaisDestaque />
+            </div>
             <Footer />
         </main>
     );

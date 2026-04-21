@@ -3,6 +3,7 @@ import api from './api';
 export async function getAllWorks(type = null) {
     const params = type ? { type } : {};
     const response = await api.get('/work', { params });
+    console.log('formato da resposta:', response.data);
     return response.data;
 }
 
