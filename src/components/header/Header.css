@@ -25,13 +25,31 @@
   align-items: center;
 }
 
-.logo span {
+/* --- NOVAS CLASSES PARA O TEXTO DO HEADER --- */
+.logo__text-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo__title {
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #ffffff;
   font-family: 'Poppins', system-ui, sans-serif;
+  line-height: 1.1; /* Mantém os textos mais próximos */
 }
+
+.logo__subtitle {
+  font-size: 11px; /* Menor que o principal, mas legível */
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: #f0a500; /* Cor de destaque */
+  font-family: 'Poppins', system-ui, sans-serif;
+  text-transform: uppercase; /* Opcional: deixa em maiúsculo para mais destaque */
+}
+/* ------------------------------------------- */
 
 .icons {
   display: flex;
