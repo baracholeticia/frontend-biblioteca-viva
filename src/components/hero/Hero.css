@@ -5,18 +5,26 @@
       rgba(10, 42, 87, 0.9),
       rgba(10, 42, 87, 0.9)
     ),
-    url('https://images.unsplash.com/photo-1568667256549-094345857637?w=1600&q=80');
+    url('../../assets/hero-background.jpg');
   background-size: cover;
   background-position: center;
   text-align: center;
   padding: 90px 20px;
 }
 
+.school-name {
+  color: #fcbf49;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: -5px;
+}
+
 .hero h1 {
   font-size: 52px;
   font-weight: 800;
   letter-spacing: 3.5px;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 .subtitle {

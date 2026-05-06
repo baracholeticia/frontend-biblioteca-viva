@@ -106,14 +106,13 @@ export function ClubeLeitura() {
     return date.toLocaleString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
   };
 
-  // Filtragem exata da nota selecionada
   const filteredReviews = filterRating === 0 
     ? reviews 
     : reviews.filter(r => Number(r.rating) === filterRating);
 
   if (loading) return null;
 
-  // Lista com todas as opções de notas possíveis para o filtro (5 até 0.5)
+  //opções de notas possíveis
   const filterOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 
   return (
@@ -207,7 +206,7 @@ export function ClubeLeitura() {
                     </div>
                   </div>
 
-                  {/* SEÇÃO DE AVALIAÇÕES */}
+                  {/*AVALIAÇÕES*/}
                   <div className="cl-reviews-section" style={{ marginTop: '48px' }}>
                       <div className="cl-reviews__header">
                           <span className="cl-reviews__icon"><IconMessage size={24} color="#1a2f5e" /></span>
@@ -220,7 +219,6 @@ export function ClubeLeitura() {
                               
                               <div className="cl-stars-interactive-container">
                                   {[1, 2, 3, 4, 5].map((star) => {
-                                      // Calcula quanto da estrela deve estar pintado (0, 0.5 ou 1)
                                       const currentVal = hoverRating || newReviewRating;
                                       const ratio = currentVal >= star ? 1 : currentVal >= star - 0.5 ? 0.5 : 0;
                                       const color = currentVal >= star - 0.5 ? '#f5a623' : '#ccc';
@@ -229,7 +227,6 @@ export function ClubeLeitura() {
                                           <div key={star} className="cl-star-interactive">
                                               <IconStar size={26} fillRatio={ratio} color={color} />
                                               
-                                              {/* Metade esquerda (0.5) */}
                                               <div 
                                                   className="cl-star-half cl-star-half--left" 
                                                   onMouseEnter={() => setHoverRating(star - 0.5)}
@@ -237,7 +234,6 @@ export function ClubeLeitura() {
                                                   onClick={() => setNewReviewRating(star - 0.5)}
                                               />
                                               
-                                              {/* Metade direita (1.0) */}
                                               <div 
                                                   className="cl-star-half cl-star-half--right" 
                                                   onMouseEnter={() => setHoverRating(star)}

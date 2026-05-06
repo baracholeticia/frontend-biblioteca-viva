@@ -17,7 +17,7 @@ export function MateriaisDestaque() {
     async function fetchDestaques() {
       try {
         const data = await getAllWorks();
-        // Ordena por quantidade de curtidas (decrescente) e pega os 4 primeiros
+        // Ordena por quantidade de curtidas e pega os 4 primeiros
         const destaques = data.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0)).slice(0, 4);
         setMateriais(destaques);
       } catch (error) {

@@ -1,7 +1,3 @@
-/* ===========================
-   CLUBE DE LEITURA
-=========================== */
-
 .cl-section {
     background-color: #fff;
     padding: 64px 0 80px;
@@ -16,7 +12,6 @@
     box-sizing: border-box;
 }
 
-/* ── HERO ── */
 .cl-hero {
     text-align: center;
     margin-bottom: 48px;
@@ -48,13 +43,12 @@
     font-weight: 400;
 }
 
-/* ── MAIN GRID ── */
 .cl-main-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 28px;
     margin-bottom: 56px;
-    align-items: stretch; /* Alinha os dois lados da grid na mesma altura */
+    align-items: stretch;
 }
 
 .cl-book-card {
@@ -84,22 +78,21 @@
     font-family: 'Poppins', system-ui, sans-serif;
 }
 
-/* ── CORREÇÃO DA IMAGEM E LAYOUT DO CARD ── */
 .cl-book-card__content {
     display: flex;
-    flex-direction: row; /* Força os elementos ficarem lado a lado */
+    flex-direction: row;
     gap: 24px;
     align-items: flex-start;
 }
 
 .cl-book-card__image-wrapper {
     flex-shrink: 0;
-    width: 120px; /* Trava a largura da capa */
+    width: 120px; 
 }
 
 .cl-book-card__image {
-    width: 100% !important; /* Respeita os 120px do wrapper */
-    height: 175px !important; /* Trava a altura padrão de capa */
+    width: 100% !important; 
+    height: 175px !important; 
     object-fit: cover;
     border-radius: 8px;
     display: block;
@@ -108,7 +101,7 @@
 
 .cl-book-card__info {
     flex: 1;
-    min-width: 0; /* Previne estouro de layout em textos longos */
+    min-width: 0;
 }
 
 .cl-book-card__title {
@@ -235,9 +228,7 @@
     font-family: 'Poppins', system-ui, sans-serif;
 }
 
-/* ===========================
-   REVIEWS E COMENTÁRIOS
-=========================== */
+/* ----- reviews ----------*/
 
 .cl-reviews__header {
     display: flex;
@@ -259,7 +250,6 @@
     font-family: 'Poppins', system-ui, sans-serif;
 }
 
-/* ── FORMULÁRIO DE AVALIAÇÃO ── */
 .cl-review-form {
     background: #fdfdfd;
     border: 1px solid #e8e8e8;
@@ -289,7 +279,6 @@
     gap: 4px;
 }
 
-/* Container de cada estrela para mapear a posição do mouse */
 .cl-star-interactive {
     position: relative;
     display: inline-block;
@@ -302,7 +291,6 @@
     transform: scale(1.15);
 }
 
-/* Metades invisíveis para capturar o clique exato (0.5 vs 1.0) */
 .cl-star-half {
     position: absolute;
     top: 0;
@@ -320,7 +308,6 @@
     right: 0;
 }
 
-/* Mostrador do número exato (Ex: 4.5) ao lado das estrelas */
 .cl-review-form__rating-value {
     margin-left: 10px;
     font-weight: 700;
@@ -374,12 +361,12 @@
     opacity: 0.85;
 }
 
-/* ── FILTRO DE NOTAS ── */
+/*filtros das reviews*/
 .cl-reviews-filter {
     display: flex;
     gap: 8px;
     margin-bottom: 24px;
-    flex-wrap: wrap; /* Importante para caber as 10 notas sem estourar a tela */
+    flex-wrap: wrap;
 }
 
 .cl-filter-btn {
@@ -415,14 +402,12 @@
     margin-top: 10px;
 }
 
-/* ── RESENHAS GRID ── */
 .cl-reviews-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
 
-/* ── REVIEW CARD ── */
 .cl-review-card {
     background: #fff;
     border: 1px solid #e8e8e8;
@@ -470,7 +455,6 @@
     font-family: 'Poppins', system-ui, sans-serif;
 }
 
-/* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
     .cl-container {
         padding: 0 40px;

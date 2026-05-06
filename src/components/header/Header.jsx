@@ -31,7 +31,6 @@ export function Header() {
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
 
-  // Usa useMemo em vez de useEffect + useState para evitar re-renders desnecessários
   const isAdmin = useMemo(() => {
     if (!token) return false;
     
@@ -73,7 +72,10 @@ export function Header() {
           <nav className="topbar">
             <div className="logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
               <span className="logo__icon"><IconBook size={22} color="#f0a500" /></span>
-              <span>BIBLIOTECA VIVA</span>
+              <div className="logo__text-group">
+                <span className="logo__title">BIBLIOTECA VIVA</span>
+                <span className="logo__subtitle">EREM Abílio Monteiro</span>
+              </div>
             </div>
             
             <div className="icons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

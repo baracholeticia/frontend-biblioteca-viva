@@ -1,7 +1,3 @@
-/* ===========================
-   MATERIAIS EM DESTAQUE
-=========================== */
-
 .md-section {
     background-color: #fff;
     padding: 64px 0 80px;
@@ -16,7 +12,6 @@
     box-sizing: border-box;
 }
 
-/* ── HEADER ── */
 .md-header {
     display: flex;
     align-items: flex-start;
@@ -61,14 +56,12 @@
     opacity: 0.75;
 }
 
-/* ── GRID ── */
 .md-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 28px;
 }
 
-/* ── CARD ── */
 .md-card {
     display: flex;
     flex-direction: column;
@@ -85,7 +78,6 @@
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
 }
 
-/* ── IMAGE ── */
 .md-card__img-wrap {
     position: relative;
     width: 100%;
@@ -119,7 +111,6 @@
     letter-spacing: 0.01em;
 }
 
-/* ── BODY ── */
 .md-card__body {
     padding: 20px 20px 0;
     display: flex;
@@ -153,7 +144,6 @@
     line-height: 1.4;
 }
 
-/* ── FOOTER ── */
 .md-card__footer {
     display: flex;
     align-items: center;
@@ -194,7 +184,6 @@
     background: #f0f2f5;
 }
 
-/* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
     .md-container {
         padding: 0 40px;
