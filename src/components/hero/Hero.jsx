@@ -16,22 +16,18 @@ export function Hero() {
         if (e.key === 'Enter') handleSearch();
     }
 
-    function handleExplore() {
-        const section = document.getElementById('acervo');
-        if (section) section.scrollIntoView({ behavior: 'smooth' });
-    }
-
     return (
         <section className="hero">
+            <h2 className="school-name">EREM Abílio Monteiro</h2>
             <h1>BIBLIOTECA VIVA</h1>
             <p className="subtitle">A biblioteca tá on!</p>
 
             <p className="location">
-                EREM Abílio Monteiro, Lagoa do Ouro - PE
+                Lagoa do Ouro - PE
             </p>
 
             <p className="description">
-                Leitura, Escrita e Protagonismo Digital. Um espaço onde os estudantes
+                Um espaço onde os estudantes
                 compartilham suas produções autorais e inspiram outros a criar.
                 Juntos construímos conhecimento.
             </p>
@@ -45,12 +41,6 @@ export function Hero() {
                     onKeyDown={handleKeyDown}
                 />
                 <button className="search-btn" onClick={handleSearch}>BUSCAR</button>
-            </div>
-
-            <div className="actions">
-                <button className="secondary-btn" onClick={handleExplore}>
-                    Explorar Acervo
-                </button>
             </div>
         </section>
     );

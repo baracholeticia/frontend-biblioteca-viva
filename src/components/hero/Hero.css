@@ -12,11 +12,19 @@
   padding: 90px 20px;
 }
 
+.school-name {
+  color: #fcbf49;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: -5px;
+}
+
 .hero h1 {
   font-size: 52px;
   font-weight: 800;
   letter-spacing: 3.5px;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 .subtitle {
