@@ -221,11 +221,6 @@
   background-color: #b91d1d;
 }
 
-@media (max-width: 640px) {
-  .post-content, .comments-section { padding: 28px 20px; }
-  .post-title { font-size: 24px; }
-}
-
 .post-hero-image {
   width: 100%;
   max-height: 450px;
@@ -234,4 +229,22 @@
   margin-bottom: 32px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   background-color: #f0f2f5;
+}
+
+/* =========================================
+   RESPONSIVIDADE MOBILE DO POST
+========================================= */
+@media (max-width: 640px) {
+  .post-content, .comments-section { padding: 28px 20px; }
+  .post-title { font-size: 24px; }
+  
+  /* Esconde os textos dos botões no mobile e aproxima os ícones */
+  .interact-text { 
+    display: none; 
+  }
+  
+  .post-interactions {
+    justify-content: space-between; 
+    gap: 12px;
+  }
 }

@@ -11,26 +11,24 @@ import { AdminComments } from './pages/admin/AdminComments';
 import { AdminUsers } from './pages/admin/AdminUsers';
 import { Profile } from './pages/profile/Profile';
 import { Autor } from './pages/autor/Autor';
+import { AccessibilityMenu } from './components/accessibility/AccessibilityMenu'; // NOVO IMPORT
 
 function App() {
   return (
       <ToastProvider>
         <BrowserRouter>
+          {/* Adicionamos o menu de acessibilidade aqui para estar em todas as rotas */}
+          <AccessibilityMenu /> 
+          
           <Routes>
-            {/* Rotas Públicas */}
             <Route path="/" element={<Home />} />
             <Route path="/categoria/:id" element={<Category />} />
             <Route path="/:categoria/:id" element={<PostDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
-
-            {/* Perfil do próprio usuário logado */}
             <Route path="/perfil" element={<Profile />} />
-
-            {/* Perfil público de um autor — recebe o nome do autor na URL */}
             <Route path="/autor/:autor" element={<Autor />} />
 
-            {/* Rotas Administrativas */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/posts" element={<AdminPosts />} />
             <Route path="/admin/comentarios" element={<AdminComments />} />

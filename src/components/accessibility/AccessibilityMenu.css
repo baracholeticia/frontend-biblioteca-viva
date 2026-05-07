@@ -1,0 +1,235 @@
+/* --- WIDGET FLUTUANTE --- */
+.a11y-container {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 9999;
+}
+
+.a11y-toggle {
+  background-color: #0a2a57;
+  color: #fff;
+  border: 2px solid #fff;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.a11y-toggle:hover {
+  transform: scale(1.1);
+  background-color: #d62828;
+}
+
+.a11y-toggle.active {
+  background-color: #d62828;
+}
+
+.a11y-menu {
+  position: absolute;
+  bottom: 70px;
+  left: 0;
+  background: #fff;
+  color: #333;
+  width: 280px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.a11y-menu-header {
+  background: #0a2a57;
+  color: #fff;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.a11y-menu-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.a11y-menu-header button {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.a11y-menu-header button:hover {
+  opacity: 1;
+}
+
+.a11y-options {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.a11y-contrast-btn {
+  background: #f0f2f5;
+  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.a11y-contrast-btn:hover {
+  background: #e4e6eb;
+}
+
+.a11y-contrast-btn.active {
+  background: #111;
+  color: #fff;
+  border-color: #000;
+}
+
+.a11y-font-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.a11y-font-controls button {
+  flex: 1;
+  background: #f0f2f5;
+  border: 1px solid #ccc;
+  padding: 12px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #333;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.a11y-font-controls button:hover {
+  background: #d62828;
+  color: white;
+  border-color: #d62828;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- ALTO CONTRASTE REFINADO --- */
+body.high-contrast {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Força os fundos a sumirem para o preto dominar de forma limpa */
+body.high-contrast * {
+  background-color: transparent !important;
+  border-color: #ffffff !important;
+}
+
+/* Recria as bordas dos cards e painéis para eles não sumirem no escuro */
+body.high-contrast .card,
+body.high-contrast .post-card,
+body.high-contrast .work-card,
+body.high-contrast .a11y-menu,
+body.high-contrast .admin-card,
+body.high-contrast .admin-sidebar,
+body.high-contrast header,
+body.high-contrast footer {
+  background-color: #000000 !important;
+  border: 1px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+/* Títulos em Amarelo Puro para destaque */
+body.high-contrast h1, 
+body.high-contrast h2, 
+body.high-contrast h3,
+body.high-contrast .logo__title {
+  color: #FFFF00 !important;
+}
+
+/* Textos comuns em Branco */
+body.high-contrast p, 
+body.high-contrast span,
+body.high-contrast label,
+body.high-contrast input,
+body.high-contrast textarea,
+body.high-contrast th,
+body.high-contrast td {
+  color: #FFFFFF !important;
+}
+
+/* Elementos Interativos (Botões e Links) em Ciano */
+body.high-contrast a, 
+body.high-contrast button {
+  background-color: #000000 !important;
+  color: #FFFF00 !important;
+  border: 2px solid #FFFF00 !important;
+}
+
+/* Efeito Hover nos botões de Alto Contraste */
+body.high-contrast a:hover, 
+body.high-contrast button:hover {
+  background-color: #0c0e0e !important;
+  color: #000000 !important;
+}
+
+/* Oculta imagens puramente decorativas ou ajusta as necessárias */
+body.high-contrast img, 
+body.high-contrast svg {
+  filter: contrast(120%) grayscale(100%);
+}
+
+/* =======================================================
+   REGRAS ESPECÍFICAS DE ALTO CONTRASTE (HERO E HEADER) 
+======================================================= */
+
+/* Transforma a barra de navegação e o menu lateral em preto absoluto */
+body.high-contrast .topbar,
+body.high-contrast .menu-drawer {
+  background-color: #000000 !important;
+  border-bottom: 1px solid #333 !important; /* Ajuda a separar do resto do corpo */
+}
+
+/* Substitui o gradiente azul do Hero por um gradiente PRETO, 
+  mantendo a imagem da biblioteca no fundo!
+*/
+body.high-contrast .hero {
+  background: 
+    linear-gradient(
+      rgba(0, 0, 0, 0.9), 
+      rgba(0, 0, 0, 0.98)
+    ), 
+    url('../../assets/hero-background.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+/* Garante que os ícones do menu não fiquem apagados no alto contraste */
+body.high-contrast .icon-btn__dot {
+  border-color: #000000 !important;
+}

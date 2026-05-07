@@ -203,3 +203,53 @@
   background: #f0a500;
   border: 1.5px solid #0a2a57;
 }
+
+/* --- RESPONSIVIDADE DO HEADER PARA MOBILE --- */
+@media (max-width: 640px) {
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .logo__subtitle {
+    font-size: 12px;
+  }
+
+  .logo__title {
+    font-size: 16px;
+  }
+
+  .icons {
+    gap: 12px;
+  }
+
+  .icons button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+.desktop-admin-btn {
+  background: #d62828;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  margin-right: 8px;
+}
+
+.mobile-admin-item {
+  display: none; /* Escondido por padrão */
+}
+
+@media (max-width: 640px) {
+  .desktop-admin-btn {
+    display: none; /* Esconde do header superior no mobile */
+  }
+  .mobile-admin-item {
+    display: block; /* Mostra dentro da gaveta */
+  }
+}

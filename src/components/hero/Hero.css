@@ -110,3 +110,54 @@
   background-color: #fcbf49;
   color: #0a2a57;
 }
+
+/* --- RESPONSIVIDADE DO HERO (MOBILE) --- */
+@media (max-width: 640px) {
+  .hero {
+    min-height: auto; /* Remove a altura forçada da tela inteira */
+    padding: 40px 16px; /* Reduz o espaço interno brutalmente */
+  }
+
+  .school-name {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .location {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .description {
+    font-size: 13px;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .search-container {
+    padding: 4px;
+    margin-bottom: 20px;
+  }
+
+  .search-container input {
+    padding: 12px 110px 12px 14px;
+    font-size: 14px;
+  }
+
+  .search-btn {
+    padding: 10px 16px;
+    font-size: 12px;
+    right: 4px;
+  }
+}

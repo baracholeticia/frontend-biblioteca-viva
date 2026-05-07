@@ -1,3 +1,6 @@
+/* ========================================================
+   ESTRUTURA PRINCIPAL DO ADMIN (DESKTOP)
+======================================================== */
 .admin-wrapper {
   display: flex;
   min-height: 100vh;
@@ -24,7 +27,7 @@
   align-items: center;
   gap: 12px;
   padding: 0 24px 28px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 16px;
 }
 
@@ -68,7 +71,7 @@
 }
 
 .admin-nav-item:hover {
-  background-color: rgba(255,255,255,0.08);
+  background-color: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
@@ -79,14 +82,14 @@
 
 .admin-sidebar-footer {
   padding: 16px 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 8px;
 }
 
 .admin-back-btn {
   width: 100%;
   background: none;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #94a3b8;
   padding: 10px;
   border-radius: 8px;
@@ -98,7 +101,7 @@
 
 .admin-back-btn:hover {
   color: white;
-  border-color: rgba(255,255,255,0.4);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .admin-main {
@@ -111,7 +114,9 @@
   padding: 32px;
 }
 
-/* Shared admin components */
+/* ========================================================
+   COMPONENTES COMPARTILHADOS E FILTROS
+======================================================== */
 .admin-page-title {
   font-size: 26px;
   font-weight: 800;
@@ -122,16 +127,78 @@
 .admin-page-subtitle {
   color: #6b778c;
   font-size: 14px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .admin-card {
   background: white;
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
+.admin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admin-card-header h2 {
+  color: #0a2a57;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+
+.admin-link-ver-todos {
+  color: #d62828;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* BARRA DE FILTROS E BUSCA */
+.admin-controls-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-search-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 0 14px;
+  flex: 1;
+  min-width: 250px;
+}
+
+.admin-select {
+  padding: 10px 14px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  color: #0a2a57;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ========================================================
+   TABELAS E BOTÕES
+======================================================== */
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -146,7 +213,6 @@
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   border-bottom: 1px solid #e8eaed;
 }
 
@@ -157,12 +223,16 @@
   vertical-align: middle;
 }
 
-.admin-table tr:last-child td {
-  border-bottom: none;
-}
-
 .admin-table tr:hover td {
   background-color: #f9fafb;
+}
+
+.truncate-text {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .badge {
@@ -178,8 +248,12 @@
 .badge-rejected { background: #fee2e2; color: #991b1b; }
 .badge-active { background: #dbeafe; color: #1e40af; }
 .badge-student { background: #e0e7ff; color: #3730a3; }
-.badge-teacher { background: #d1fae5; color: #065f46; }
-.badge-admin { background: #fee2e2; color: #991b1b; }
+
+.admin-table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 .action-btn {
   padding: 6px 12px;
@@ -190,12 +264,332 @@
   cursor: pointer;
   transition: opacity 0.2s;
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .action-btn:hover { opacity: 0.8; }
 .btn-approve { background: #d1fae5; color: #065f46; }
-.btn-reject  { background: #fee2e2; color: #991b1b; }
-.btn-edit    { background: #dbeafe; color: #1e40af; }
-.btn-delete  { background: #fef3c7; color: #92400e; }
-.btn-view    { background: #f3f4f6; color: #374151; }
-.btn-primary { background: #d62828; color: white; padding: 10px 20px; font-size: 14px; border-radius: 8px; }
+.btn-reject { background: #fee2e2; color: #991b1b; }
+.btn-edit { background: #dbeafe; color: #1e40af; }
+.btn-delete { background: #fef3c7; color: #92400e; }
+.btn-view { background: #f3f4f6; color: #374151; }
+.btn-primary {
+  background: #d62828;
+  color: white;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+/* ========================================================
+   ESTILOS DOS CARTÕES DE ESTATÍSTICAS
+======================================================== */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.admin-stat-card {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-left: 4px solid #ccc;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.admin-stat-icon {
+  margin-bottom: 12px;
+}
+
+.admin-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.admin-stat-label {
+  font-size: 13px;
+  color: #6b778c;
+  font-weight: 500;
+}
+
+/* ========================================================
+   ESTRUTURA DOS CARDS EXPANSÍVEIS (MOBILE)
+======================================================== */
+.mobile-expand-btn {
+  display: none;
+  background: #f0f2f5;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0a2a57;
+  flex-shrink: 0;
+}
+
+.mobile-expanded-content {
+  display: none;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px dashed #e8eaed;
+  font-size: 13px;
+  color: #42526e;
+}
+
+.mobile-expanded-content p {
+  margin: 6px 0;
+}
+
+.row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Limitador de linhas com propriedade padrão para compatibilidade (Evita avisos no Console) */
+.comment-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.mobile-filter-toggle {
+  display: none;
+}
+
+.admin-mobile-header,
+.admin-overlay,
+.admin-close-mobile {
+  display: none;
+}
+
+/* ========================================================
+   RESPONSIVIDADE DO ADMIN (CELULARES E TABLETS)
+======================================================== */
+@media (max-width: 768px) {
+  .admin-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0a2a57;
+    height: 60px;
+    padding: 0 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    border-bottom: 2px solid #d62828;
+  }
+
+  .admin-hamburger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+  }
+
+  .admin-close-mobile {
+    display: block;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: auto;
+    padding: 8px;
+  }
+
+  .admin-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 950;
+  }
+
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    width: 280px;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .admin-sidebar--open {
+    transform: translateX(0);
+  }
+
+  .admin-main {
+    margin-left: 0;
+    padding-top: 60px;
+    width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .admin-content {
+    padding: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-page-title {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+
+  /* Controles e Grid Mobile */
+  .admin-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .admin-search-input {
+    min-width: 100%;
+  }
+
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .admin-stat-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .admin-stat-icon {
+    margin-bottom: 8px;
+  }
+
+  .admin-stat-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .admin-stat-value {
+    font-size: 22px;
+  }
+
+  .admin-stat-label {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .admin-card {
+    padding: 16px;
+    border-radius: 12px;
+    overflow-x: hidden;
+  }
+
+  .admin-card-header h2 {
+    font-size: 16px;
+  }
+
+  /* MÁGICA DAS TABELAS MOBILE */
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table tr {
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #dfe1e6;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  }
+
+  .admin-table td {
+    padding: 0;
+    border: none;
+  }
+
+  .desktop-cell {
+    display: none !important;
+  }
+
+  .mobile-expand-btn {
+    display: flex;
+  }
+
+  .mobile-expanded-content {
+    display: block;
+  }
+
+  /* MENU DE FILTROS MOBILE (Usuários) */
+  .mobile-filter-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    background: #f0f2f5;
+    border: 1px solid #dfe1e6;
+    border-radius: 8px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #0a2a57;
+  }
+
+  .filter-buttons-container {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .filter-buttons-container.show {
+    display: flex;
+  }
+
+  .filter-buttons-container button {
+    width: 100%;
+    text-align: left;
+  }
+
+  .truncate-text {
+    max-width: 200px;
+  }
+
+  .action-text {
+    display: none;
+  }
+
+  .admin-table-actions {
+    gap: 6px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+}

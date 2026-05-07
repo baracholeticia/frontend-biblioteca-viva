@@ -1,5 +1,11 @@
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  max-width: 100vw;
+  overflow-x: hidden; /* ESSA É A MÁGICA QUE RESOLVE A TELA AZUL VAZADA */
+}
+
+body {
   font-family: 'Poppins', sans-serif;
   background-color: #0b2b5a;
   color: white;
