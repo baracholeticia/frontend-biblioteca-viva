@@ -4,7 +4,7 @@ import {
   IconBook, IconUser, IconMenu, IconClose,
   IconAward, IconScrollText, IconDoc, IconFeather,
   IconBookmark, IconNewspaper, IconBarChart, IconPalette,
-  IconVideo, IconGlobe, IconPencil,
+  IconVideo, IconGlobe, IconPencil, IconDashboard
 } from '../icons';
 import './Header.css';
 
@@ -33,13 +33,12 @@ export function Header() {
 
   const isAdmin = useMemo(() => {
     if (!token) return false;
-    
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const role = payload.role || payload.roles || '';
       return role.includes('ADMIN') || role === 'ROLE_ADMIN';
     } catch (e) {
-      console.error("Erro ao verificar permissões:", e);
+      console.error('Error parsing token:', e);
       return false;
     }
   }, [token]);
@@ -53,24 +52,11 @@ export function Header() {
     setMenuOpen(false);
   };
 
-  const handleLogoClick = () => {
-    navigate('/');
-    setMenuOpen(false);
-  };
-
-  const handleUserClick = () => {
-    if (isLoggedIn) {
-      navigate('/perfil');
-    } else {
-      navigate('/login');
-    }
-  };
-
   return (
       <>
         <header>
           <nav className="topbar">
-            <div className="logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+            <div className="logo" onClick={() => { navigate('/'); setMenuOpen(false); }} style={{ cursor: 'pointer' }}>
               <span className="logo__icon"><IconBook size={22} color="#f0a500" /></span>
               <div className="logo__text-group">
                 <span className="logo__title">BIBLIOTECA VIVA</span>
@@ -81,19 +67,8 @@ export function Header() {
             <div className="icons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {isAdmin && (
                   <button
+                      className="desktop-admin-btn"
                       onClick={() => navigate('/admin')}
-                      style={{
-                          background: '#d62828',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '6px 14px',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          fontSize: '13px',
-                          fontFamily: 'Poppins, system-ui, sans-serif',
-                          marginRight: '8px'
-                      }}
                   >
                       Admin
                   </button>
@@ -101,8 +76,7 @@ export function Header() {
 
               <button
                   className={`icon-btn ${isLoggedIn ? 'icon-btn--logged' : ''}`}
-                  title={isLoggedIn ? 'Meu perfil' : 'Entrar'}
-                  onClick={handleUserClick}
+                  onClick={() => navigate(isLoggedIn ? '/perfil' : '/login')}
               >
                 <IconUser size={20} />
                 {isLoggedIn && <span className="icon-btn__dot" />}
@@ -110,9 +84,7 @@ export function Header() {
               
               <button
                   className={`icon-btn ${menuOpen ? 'icon-btn--active' : ''}`}
-                  title="Menu"
                   onClick={() => setMenuOpen((v) => !v)}
-                  aria-label="Abrir menu"
               >
                 {menuOpen ? <IconClose size={22} /> : <IconMenu size={22} />}
               </button>
@@ -123,13 +95,28 @@ export function Header() {
 
         <div className="header-spacer" />
 
-        {menuOpen && (
-            <div className="menu-overlay" onClick={() => setMenuOpen(false)} />
-        )}
+        {menuOpen && <div className="menu-overlay" onClick={() => setMenuOpen(false)} />}
 
         <div className={`menu-drawer ${menuOpen ? 'menu-drawer--open' : ''}`}>
-          <p className="menu-drawer__title">Seções da Biblioteca</p>
+          <p className="menu-drawer__title">Menu</p>
           <ul className="menu-drawer__list">
+            
+            {/* O Botão Admin aparece AQUI no mobile */}
+            {isAdmin && (
+                <li className="mobile-admin-item">
+                  <button 
+                    className="menu-drawer__item" 
+                    onClick={() => { navigate('/admin'); setMenuOpen(false); }}
+                    style={{ color: '#f0a500' }}
+                  >
+                    <span className="menu-drawer__item-icon" style={{ color: '#f0a500' }}><IconDashboard size={20} /></span>
+                    <span>Painel de Administração</span>
+                  </button>
+                </li>
+            )}
+
+            <div style={{ margin: '10px 28px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}></div>
+
             {sections.map((s) => (
                 <li key={s.key}>
                   <button

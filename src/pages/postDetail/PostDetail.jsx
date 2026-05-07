@@ -30,7 +30,6 @@ const getYouTubeId = (url) => {
   return match ? match[1] : null;
 };
 
-// Vincula o "Salvar" ao e-mail do usuário para não cruzar contas
 const getSavedKey = () => `savedPosts_${localStorage.getItem('userEmail') || 'guest'}`;
 
 function getSavedIds() {
@@ -99,7 +98,6 @@ export function PostDetail() {
             setComments(commentsData || []);
             setLikes(postData.likeCount || 0);
 
-            // Verifica se o usuário curtiu (Mantém a cor vermelha)
             if (isLoggedIn()) {
                 const likedList = await getLikedWorks().catch(() => []);
                 setHasLiked(likedList.includes(id));
@@ -132,7 +130,7 @@ export function PostDetail() {
       navigate('/login');
       return;
     }
-    if (isBookClub) return; // Não dá pra dar "Like" no livro em si desta forma
+    if (isBookClub) return; 
     if (isLiking) return;
     
     setIsLiking(true);
@@ -194,7 +192,7 @@ export function PostDetail() {
     return new Date(isoDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
-  if (loading || error || !post) return null; // Resumido para caber aqui (Mantenha sua tela de loading/erro atual)
+  if (loading || error || !post) return null;
 
   const translatedCategory = categoryTranslations[post.type] || post.type;
   const youtubeId = getYouTubeId(post.url);
@@ -229,16 +227,18 @@ export function PostDetail() {
               {!isBookClub && (
                   <button className={`like-btn ${hasLiked ? 'liked' : ''}`} onClick={handleLike} disabled={isLiking} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <IconHeart size={20} color={hasLiked ? "#d62828" : "#6b778c"} filled={hasLiked} />
-                    {likes} Curtidas
+                    <span>{likes} <span className="interact-text">Curtidas</span></span>
                   </button>
               )}
 
               <span className="btn-interact" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <IconMessage size={20} /> {comments.length} Comentários {isBookClub && "(Resenhas)"}
+                <IconMessage size={20} /> 
+                <span>{comments.length} <span className="interact-text">Comentários {isBookClub && "(Resenhas)"}</span></span>
               </span>
 
               <button className={`save-btn ${isSaved ? 'save-btn--saved' : ''}`} onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <IconBookmark size={20} color={isSaved ? '#0a2a57' : '#6b778c'} /> {isSaved ? 'Salvo' : 'Salvar'}
+                <IconBookmark size={20} color={isSaved ? '#0a2a57' : '#6b778c'} /> 
+                <span className="interact-text">{isSaved ? 'Salvo' : 'Salvar'}</span>
               </button>
             </div>
           </article>
