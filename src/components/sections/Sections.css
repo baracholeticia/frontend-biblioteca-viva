@@ -75,14 +75,14 @@
   font-size: 17px;
   font-weight: 700;
   margin-bottom: 6px;
-  color: #1a6fc4;
+  color: #1a2f5e;
   line-height: 1.35;
   font-family: 'Poppins', system-ui, sans-serif;
 }
 
 .card span {
   font-size: 13px;
-  color: #6b778c;
+  color: #555;
   font-family: 'Poppins', system-ui, sans-serif;
 }
 

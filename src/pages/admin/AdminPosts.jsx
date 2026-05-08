@@ -15,7 +15,21 @@ const ChevronIcon = ({ expanded }) => (
 const typeEndpoints = {
   'Essay': 'essays', 'Cordel': 'cordels', 'Tale': 'tales', 'ShortStory': 'short-stories',
   'Article': 'articles', 'Infographic': 'infographics', 'Art': 'arts', 
-  'Multimedia': 'multimedias', 'LibraLiterature': 'libra-literatures'
+  'Multimedia': 'multimedias', 'LibraLiterature': 'libra-literatures', 'Poem': 'poems'
+};
+
+const categoryTranslations = {
+  'Essay': 'Redação Nota 10',
+  'Cordel': 'Cordel',
+  'Tale': 'Conto',
+  'ShortStory': 'Crônica',
+  'Article': 'Jornal da Escola',
+  'Infographic': 'Infográfico',
+  'Art': 'Arte',
+  'Multimedia': 'Vídeo Autoral',
+  'LibraLiterature': 'Literatura em Libras',
+  'Poem': 'Poema',
+  'BookClub': 'Clube de Leitura'
 };
 
 const initialForm = { type: 'Essay', title: '', author: '', description: '', content: '', url: '', duration: '', genre: '', rhymeScheme: '', rate: 0, theme: 'Geral', themeDescription: 'Tema Geral', feedback: 'Sem feedback' };
@@ -64,7 +78,7 @@ export function AdminPosts() {
       const data = await getAllWorks();
       setPosts(data);
     } catch (error) {
-      console.error(error);
+      console.error(error); 
       showToast("Erro ao carregar posts.", "error");
     } finally {
       setLoading(false);
@@ -111,7 +125,7 @@ export function AdminPosts() {
       else { await updateWork(endpointType, editing, payload); showToast("Atualizado!", "success"); }
       setCreating(false); setEditing(null); fetchPosts();
     } catch (error) { 
-      console.error(error);
+      console.error(error); 
       showToast("Erro ao salvar post.", "error"); 
     }
   };
@@ -142,7 +156,16 @@ export function AdminPosts() {
         <div className="admin-card" style={{ marginBottom: 24, borderLeft: '4px solid #d62828' }}>
           <h2 style={{ color: '#0a2a57', fontSize: 17, fontWeight: 700, marginBottom: 20, display: 'flex', gap: 8, alignItems: 'center' }}><IconPencil size={18} /> {creating ? 'Criar Post' : 'Editar Post'}</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Tipo</label><select style={inputStyle} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} disabled={!creating}>{Object.keys(typeEndpoints).map(k => <option key={k} value={k}>{k}</option>)}</select></div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={labelStyle}>Tipo (Categoria)</label>
+              <select style={inputStyle} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} disabled={!creating}>
+                {Object.keys(typeEndpoints).map(k => (
+                  <option key={k} value={k}>{categoryTranslations[k] || k}</option>
+                ))}
+              </select>
+            </div>
+            
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Título</label><input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Autor</label><input style={inputStyle} value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} /></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Descrição</label><input style={inputStyle} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
@@ -204,7 +227,7 @@ export function AdminPosts() {
                   {expandedId === post.id && (
                     <div className="mobile-expanded-content">
                       <p><strong>Autor:</strong> {post.author}</p>
-                      <p><strong>Categoria:</strong> <span className="badge badge-active" style={{ fontSize: 11 }}>{post.type}</span></p>
+                      <p><strong>Categoria:</strong> <span className="badge badge-active" style={{ fontSize: 11 }}>{categoryTranslations[post.type] || post.type}</span></p>
                       
                       <div style={{ display: 'flex', gap: 16, marginTop: 8, marginBottom: 8 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#d62828' }}><IconHeart size={14} color="#d62828" /> {post.likeCount || 0}</span>
@@ -221,7 +244,7 @@ export function AdminPosts() {
                 </td>
                 
                 <td className="desktop-cell">{post.author}</td>
-                <td className="desktop-cell"><span className="badge badge-active" style={{ fontSize: 11 }}>{post.type}</span></td>
+                <td className="desktop-cell"><span className="badge badge-active" style={{ fontSize: 11 }}>{categoryTranslations[post.type] || post.type}</span></td>
                 <td className="desktop-cell"><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconHeart size={14} color="#d62828" /> {post.likeCount || 0}</div></td>
                 <td className="desktop-cell"><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconMessage size={14} color="#6b778c" /> {post.commentCount || 0}</div></td>
                 <td className="desktop-cell">

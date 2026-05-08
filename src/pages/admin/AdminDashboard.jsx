@@ -4,7 +4,7 @@ import { getAllUsers, approveUser, rejectUser, getDashboardData } from '../../se
 import { getAllWorks } from '../../services/workService';
 import { useToast } from '../../context/ToastContext';
 import { IconDoc, IconMessage, IconUsers, IconCalendar, IconCheck, IconClose, IconHeart } from '../../components/icons';
-import { Link } from 'react-router-dom';
+import { Link} from 'react-router-dom';
 import './AdminLayout.css';
 
 const ChevronIcon = ({ expanded }) => (
@@ -12,6 +12,20 @@ const ChevronIcon = ({ expanded }) => (
     <polyline points="6 9 12 15 18 9"></polyline>
   </svg>
 );
+
+const categoryTranslations = {
+  'Essay': 'Redação Nota 10',
+  'Cordel': 'Cordel',
+  'Tale': 'Conto',
+  'ShortStory': 'Crônica',
+  'Article': 'Jornal da Escola',
+  'Infographic': 'Infográfico',
+  'Art': 'Arte',
+  'Multimedia': 'Vídeo Autoral',
+  'LibraLiterature': 'Literatura em Libras',
+  'Poem': 'Poema',
+  'BookClub': 'Clube de Leitura'
+};
 
 export function AdminDashboard() {
   const [stats, setStats] = useState({ totalPosts: 0, totalComments: 0, totalUsers: 0, pendingUsers: 0 });
@@ -32,7 +46,7 @@ export function AdminDashboard() {
         setPendingUsersList(pendingData || []);
         setRecentWorks(worksData || []);
       } catch (error) {
-        console.error(error); // Variável 'error' utilizada!
+        console.error(error); 
         showToast("Erro ao carregar dados. Você tem permissão de Admin?", "error");
       } finally { 
         setLoading(false); 
@@ -48,7 +62,7 @@ export function AdminDashboard() {
       setPendingUsersList(pendingUsersList.filter(u => u.id !== id)); 
       setStats(s => ({ ...s, pendingUsers: s.pendingUsers - 1, totalUsers: s.totalUsers + 1 })); 
     } catch (error) { 
-      console.error(error); // Variável 'error' utilizada!
+      console.error(error); 
       showToast("Erro ao aprovar.", "error"); 
     }
   };
@@ -60,7 +74,7 @@ export function AdminDashboard() {
       setPendingUsersList(pendingUsersList.filter(u => u.id !== id)); 
       setStats(s => ({ ...s, pendingUsers: s.pendingUsers - 1 })); 
     } catch (error) { 
-      console.error(error); // Variável 'error' utilizada!
+      console.error(error); 
       showToast("Erro ao rejeitar.", "error"); 
     }
   };
@@ -151,13 +165,13 @@ export function AdminDashboard() {
                   {expandedPostId === post.id && (
                     <div className="mobile-expanded-content">
                       <p><strong>Autor:</strong> {post.author}</p>
-                      <p><strong>Categoria:</strong> <span className="badge badge-active">{post.type}</span></p>
+                      <p><strong>Categoria:</strong> <span className="badge badge-active">{categoryTranslations[post.type] || post.type}</span></p>
                       <p><strong>Curtidas:</strong> {post.likeCount || 0}</p>
                     </div>
                   )}
                 </td>
                 <td className="desktop-cell">{post.author}</td>
-                <td className="desktop-cell"><span className="badge badge-active">{post.type}</span></td>
+                <td className="desktop-cell"><span className="badge badge-active">{categoryTranslations[post.type] || post.type}</span></td>
                 <td className="desktop-cell"><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconHeart size={14} color="#d62828" /> {post.likeCount || 0}</div></td>
               </tr>
             ))}

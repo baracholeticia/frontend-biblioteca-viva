@@ -18,14 +18,14 @@ export function Home() {
             <Hero />
             <div id="acervo">
                 <Sections />
+                <MateriaisDestaque />
+                <ClubeLeitura />
+                <JornalEscola />
                 <Essays />
                 <Literaturas />
                 <ContosCronicas />
                 <Poemas />
-                <ClubeLeitura />
-                <JornalEscola />
                 <Multimidia />
-                <MateriaisDestaque />
             </div>
             <Footer />
         </main>

@@ -137,11 +137,11 @@
 
 .md-card__shared {
     font-size: 0.875rem;
-    color: #d93025;
-    font-weight: 500;
+    color: #555; /* Cor alterada de #d93025 (vermelho) para cinza escuro */
+    font-weight: 400; /* Reduzido para peso normal de texto */
     margin: 0;
     font-family: 'Poppins', system-ui, sans-serif;
-    line-height: 1.4;
+    line-height: 1.5; /* Aumentado levemente para melhorar a leitura do parágrafo */
 }
 
 .md-card__footer {
@@ -221,4 +221,26 @@
     .md-header__title {
         font-size: 1.4rem;
     }
+}
+
+/* Estilos adicionais para quando o card não tem imagem */
+.md-card--text-only {
+    border-top: 6px solid #1a2f5e; /* Borda azul para compensar a falta da imagem */
+    padding-top: 8px; 
+}
+
+.md-card__badge-wrapper {
+    margin-bottom: 12px;
+}
+
+/* Modificador para o badge quando ele está no corpo de texto (sem imagem) */
+.md-card__badge--static {
+    position: static;
+    display: inline-block;
+}
+
+/* Opcional: Garante que o texto description não quebre se for muito longo,
+   mantendo a altura do card mais consistente em textos curtos */
+.md-card--text-only .md-card__body {
+    justify-content: flex-start;
 }

@@ -10,6 +10,20 @@ const typeToRoute = {
   'Article': 'jornal', 'Infographic': 'infograficos', 'Art': 'artes', 'Multimedia': 'videos', 'LibraLiterature': 'libras'
 };
 
+const categoryTranslations = {
+  'Essay': 'Redação Nota 10',
+  'Cordel': 'Cordel',
+  'Tale': 'Conto',
+  'ShortStory': 'Crônica',
+  'Article': 'Jornal da Escola',
+  'Infographic': 'Infográfico',
+  'Art': 'Arte',
+  'Multimedia': 'Vídeo Autoral',
+  'LibraLiterature': 'Literatura em Libras',
+  'Poem': 'Poema',
+  'BookClub': 'Clube de Leitura'
+};
+
 export function MateriaisDestaque() {
   const [materiais, setMateriais] = useState([]);
 
@@ -43,18 +57,37 @@ export function MateriaisDestaque() {
         <div className="md-grid">
           {materiais.map((item) => {
             const route = typeToRoute[item.type] || 'redacoes';
+            const translatedType = categoryTranslations[item.type] || item.type;
+            
             let image = item.url;
-            if (item.type == 'LibraLiterature' || item.type == 'Multimedia') {
+            if (item.type === 'LibraLiterature' || item.type === 'Multimedia') {
               image = getYoutubeThumbnail(item.url);
             }
+            
+            const hasImage = !!image;
+
             return (
-              <Link to={`/${route}/${item.id}`} className="md-card" key={item.id} style={{ textDecoration: 'none' }}>
-                <div className="md-card__img-wrap" style={{ backgroundColor: '#1a2f5e', minHeight: '140px' }}>
-                  {image && <img src={image} alt={item.title} className="md-card__img" />}
-                  <span className="md-card__badge">{item.type}</span>
-                </div>
+              <Link 
+                to={`/${route}/${item.id}`} 
+                className={`md-card ${!hasImage ? 'md-card--text-only' : ''}`} 
+                key={item.id} 
+                style={{ textDecoration: 'none' }}
+              >
+                {/* Só renderiza a área de imagem se realmente existir uma */}
+                {hasImage && (
+                  <div className="md-card__img-wrap">
+                    <img src={image} alt={item.title} className="md-card__img" />
+                    <span className="md-card__badge">{translatedType}</span>
+                  </div>
+                )}
 
                 <div className="md-card__body">
+                  {/* Se não tem imagem, renderiza a tag dentro do corpo do card */}
+                  {!hasImage && (
+                    <div className="md-card__badge-wrapper">
+                      <span className="md-card__badge md-card__badge--static">{translatedType}</span>
+                    </div>
+                  )}
                   <h2 className="md-card__title">{item.title}</h2>
                   <p className="md-card__author">por {item.author}</p>
                   <p className="md-card__shared">{item.description}</p>
