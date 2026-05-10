@@ -529,3 +529,64 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* ========================================================
+   ADMIN: EDITAR / EXCLUIR COMENTÁRIO
+======================================================== */
+.comment-admin-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* Mesmas classes do AdminLayout.css — garante visual idêntico ao painel admin */
+.action-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.action-btn:hover { opacity: 0.8; }
+.btn-edit   { background: #dbeafe; color: #1e40af; }
+.btn-delete { background: #fef3c7; color: #92400e; }
+
+.comment-edit-form {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-edit-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 6px;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  color: #0a2a57;
+  box-sizing: border-box;
+  background: #f8faff;
+  transition: border-color 0.2s;
+}
+
+.comment-edit-textarea:focus {
+  border-color: #3730a3;
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

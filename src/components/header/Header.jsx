@@ -24,7 +24,7 @@ const sections = [
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -63,25 +63,27 @@ export function Header() {
                 <span className="logo__subtitle">EREM Abílio Monteiro</span>
               </div>
             </div>
-            
+
             <div className="icons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {isAdmin && (
                   <button
                       className="desktop-admin-btn"
                       onClick={() => navigate('/admin')}
                   >
-                      Admin
+                    Admin
                   </button>
               )}
 
-              <button
-                  className={`icon-btn ${isLoggedIn ? 'icon-btn--logged' : ''}`}
-                  onClick={() => navigate(isLoggedIn ? '/perfil' : '/login')}
-              >
-                <IconUser size={20} />
-                {isLoggedIn && <span className="icon-btn__dot" />}
-              </button>
-              
+              {!isAdmin && (
+                  <button
+                      className={`icon-btn ${isLoggedIn ? 'icon-btn--logged' : ''}`}
+                      onClick={() => navigate(isLoggedIn ? '/perfil' : '/login')}
+                  >
+                    <IconUser size={20} />
+                    {isLoggedIn && <span className="icon-btn__dot" />}
+                  </button>
+              )}
+
               <button
                   className={`icon-btn ${menuOpen ? 'icon-btn--active' : ''}`}
                   onClick={() => setMenuOpen((v) => !v)}
@@ -100,14 +102,14 @@ export function Header() {
         <div className={`menu-drawer ${menuOpen ? 'menu-drawer--open' : ''}`}>
           <p className="menu-drawer__title">Menu</p>
           <ul className="menu-drawer__list">
-            
+
             {/* O Botão Admin aparece AQUI no mobile */}
             {isAdmin && (
                 <li className="mobile-admin-item">
-                  <button 
-                    className="menu-drawer__item" 
-                    onClick={() => { navigate('/admin'); setMenuOpen(false); }}
-                    style={{ color: '#f0a500' }}
+                  <button
+                      className="menu-drawer__item"
+                      onClick={() => { navigate('/admin'); setMenuOpen(false); }}
+                      style={{ color: '#f0a500' }}
                   >
                     <span className="menu-drawer__item-icon" style={{ color: '#f0a500' }}><IconDashboard size={20} /></span>
                     <span>Painel de Administração</span>
