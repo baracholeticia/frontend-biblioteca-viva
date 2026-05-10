@@ -6,7 +6,6 @@ import { logout } from '../../services/authService';
 import { IconBookmark } from '../../components/icons';
 import './Profile.css';
 
-// --- HELPERS PARA THUMBNAIL DO YOUTUBE ---
 const getYouTubeId = (url) => {
   if (!url) return null;
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);

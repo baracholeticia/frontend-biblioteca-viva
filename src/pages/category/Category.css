@@ -235,3 +235,22 @@
   color: #0a2a57;
   font-weight: 600;
 }
+
+
+.category-content-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.category-pagination {
+  background: white;
+  border-radius: 16px;
+  padding: 8px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.category-pagination .pagination-bar {
+  border-top: none;
+  padding-top: 0;
+}

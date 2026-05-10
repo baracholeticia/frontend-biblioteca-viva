@@ -19,6 +19,10 @@ export async function blockUser(id) {
     await api.patch(`/admin/block/${id}`);
 }
 
+export async function deleteUser(id) {
+    await api.delete(`/admin/${id}`);
+}
+
 export async function getDashboardData() {
     const response = await api.get('/admin/dashboard');
     return response.data;
