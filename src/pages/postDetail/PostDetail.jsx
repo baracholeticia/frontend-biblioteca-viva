@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
-import { getComments, createComment, getReplies, createReply } from '../../services/commentService';
+import { getComments, createComment, getReplies, createReply, updateComment, deleteComment } from '../../services/commentService';
 import { getBookClubById, getBookClubReviews } from '../../services/bookclubService';
 import { isLoggedIn } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
@@ -112,6 +112,11 @@ export function PostDetail() {
   const [replyingTo, setReplyingTo] = useState(null); // commentId sendo respondido
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
+
+  // ── Edição / exclusão de comentários (admin) ──────────────────────────────
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
 
   const isBookClub = categoria === 'clube-leitura';
 
@@ -339,6 +344,45 @@ export function PostDetail() {
     }
   };
 
+  const handleEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.content);
+    setReplyingTo(null); // fecha qualquer reply aberta
+  };
+
+  const handleSaveEditComment = async (commentId) => {
+    if (!editingCommentText.trim()) return;
+    setIsSavingComment(true);
+    try {
+      await updateComment(id, commentId, editingCommentText.trim());
+      setComments(prev => prev.map(c =>
+          c.id === commentId ? { ...c, content: editingCommentText.trim() } : c
+      ));
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      showToast('Comentário atualizado!', 'success');
+    } catch (err) {
+      console.error('Erro ao editar comentário:', err);
+      showToast('Erro ao editar comentário.', 'error');
+    } finally {
+      setIsSavingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Tem certeza que deseja excluir este comentário?')) return;
+    try {
+      await deleteComment(id, commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      // Remove também as replies do comentário deletado
+      setReplies(prev => { const next = { ...prev }; delete next[commentId]; return next; });
+      showToast('Comentário excluído.', 'success');
+    } catch (err) {
+      console.error('Erro ao excluir comentário:', err);
+      showToast('Erro ao excluir comentário.', 'error');
+    }
+  };
+
   const formatTextWithLineBreaks = (text) => {
     if (!text) return null;
     return text.split(/\\n|\n/).map((line, index) => (
@@ -438,10 +482,10 @@ export function PostDetail() {
                     )}
                   </div>
                   <div className="admin-edit-panel__footer">
-                    <button className="action-btn btn-primary" onClick={handleAdminSave} disabled={isSaving}>
+                    <button className="reply-submit-btn" onClick={handleAdminSave} disabled={isSaving}>
                       {isSaving ? 'Salvando...' : 'Salvar Alterações'}
                     </button>
-                    <button className="action-btn btn-view" onClick={() => setIsEditing(false)}>
+                    <button className="reply-cancel-btn" onClick={() => setIsEditing(false)}>
                       Cancelar
                     </button>
                   </div>
@@ -499,8 +543,62 @@ export function PostDetail() {
                           <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
                             {formatDate(comment.createdAt)}
                           </span>
+                          {/* Ações de admin no comentário */}
+                          {isAdmin && !isBookClub && (
+                              <span className="comment-admin-actions">
+                              <button
+                                  className="action-btn btn-edit"
+                                  title="Editar comentário"
+                                  onClick={() => editingCommentId === comment.id
+                                      ? (setEditingCommentId(null), setEditingCommentText(''))
+                                      : handleEditComment(comment)
+                                  }
+                              >
+                                <IconPencil size={13} />
+                                {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
+                              </button>
+                              <button
+                                  className="action-btn btn-delete"
+                                  title="Excluir comentário"
+                                  onClick={() => handleDeleteComment(comment.id)}
+                              >
+                                <IconTrash size={13} />
+                                Excluir
+                              </button>
+                            </span>
+                          )}
                         </div>
-                        <div className="comment-text">{comment.content}</div>
+
+                        {/* Modo edição inline */}
+                        {editingCommentId === comment.id ? (
+                            <div className="comment-edit-form">
+                            <textarea
+                                className="comment-edit-textarea"
+                                value={editingCommentText}
+                                onChange={(e) => setEditingCommentText(e.target.value)}
+                                disabled={isSavingComment}
+                                rows={3}
+                            />
+                              <div className="comment-edit-actions">
+                                <button
+                                    className="reply-cancel-btn"
+                                    onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                    disabled={isSavingComment}
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                    className="reply-submit-btn"
+                                    onClick={() => handleSaveEditComment(comment.id)}
+                                    disabled={isSavingComment || !editingCommentText.trim()}
+                                >
+                                  {isSavingComment ? 'Salvando...' : 'Salvar'}
+                                </button>
+                              </div>
+                            </div>
+                        ) : (
+                            <div className="comment-text">{comment.content}</div>
+                        )}
 
                         {/* Replies do comentário */}
                         {replies[comment.id] && replies[comment.id].length > 0 && (
