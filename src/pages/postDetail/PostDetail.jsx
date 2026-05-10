@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
-import { getComments, createComment } from '../../services/commentService';
+import { getComments, createComment, getReplies, createReply } from '../../services/commentService';
 import { getBookClubById, getBookClubReviews } from '../../services/bookclubService';
 import { isLoggedIn } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
@@ -44,6 +44,19 @@ function getIsAdmin() {
     const role = payload.role || payload.roles || '';
     return role.includes('ADMIN') || role === 'ROLE_ADMIN';
   } catch { return false; }
+}
+
+function getCurrentUserName() {
+  // Usa o mesmo localStorage.userName que o Profile.jsx utiliza
+  const name = localStorage.getItem('userName');
+  if (name) return name;
+  // Fallback: tenta extrair do JWT
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.name || payload.username || null;
+  } catch { return null; }
 }
 
 const initialEditForm = { title: '', author: '', description: '', content: '', url: '', duration: '', genre: '', rhymeScheme: '', rate: 0, theme: '', themeDescription: '', feedback: '' };
@@ -89,9 +102,16 @@ export function PostDetail() {
   const [isSaved, setIsSaved] = useState(false);
 
   const isAdmin = useMemo(() => getIsAdmin(), []);
+  const currentUserName = useMemo(() => getCurrentUserName(), []);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(initialEditForm);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ── Replies ──────────────────────────────────────────────────────────────
+  const [replies, setReplies] = useState({}); // { [commentId]: Reply[] }
+  const [replyingTo, setReplyingTo] = useState(null); // commentId sendo respondido
+  const [replyText, setReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   const isBookClub = categoria === 'clube-leitura';
 
@@ -132,6 +152,18 @@ export function PostDetail() {
           if (isLoggedIn()) {
             const likedList = await getLikedWorks().catch(() => []);
             setHasLiked(likedList.includes(id));
+          }
+
+          // Carrega replies para cada comentário
+          if (commentsData && commentsData.length > 0) {
+            const repliesMap = {};
+            await Promise.all(
+                commentsData.map(async (c) => {
+                  const r = await getReplies(id, c.id).catch(() => []);
+                  if (r && r.length > 0) repliesMap[c.id] = r;
+                })
+            );
+            setReplies(repliesMap);
           }
         }
       } catch (err) {
@@ -252,6 +284,58 @@ export function PostDetail() {
       showToast('Erro ao enviar. Tente novamente.', 'error');
     } finally {
       setIsCommenting(false);
+    }
+  };
+
+  // Verifica se o usuário logado é o autor do post OU admin
+  const canReply = useMemo(() => {
+    if (!post || !isLoggedIn()) return false;
+    if (isAdmin) return true;
+    // Mesmo critério do Profile.jsx: verifica se o nome/email do usuário está contido no campo author
+    if (post.author) {
+      const authorLower = post.author.toLowerCase();
+      const userName = (localStorage.getItem('userName') || '').toLowerCase();
+      const userEmail = localStorage.getItem('userEmail') || '';
+      const emailPrefix = userEmail.split('@')[0].toLowerCase();
+      if (userName && (authorLower.includes(userName) || userName.includes(authorLower))) return true;
+      if (emailPrefix && authorLower.includes(emailPrefix)) return true;
+    }
+    return false;
+  }, [post, isAdmin]);
+
+  // Contagem total: comentários + replies
+  const totalInteractions = useMemo(() => {
+    const repliesCount = Object.values(replies).reduce((acc, r) => acc + r.length, 0);
+    return comments.length + repliesCount;
+  }, [comments, replies]);
+
+  const handleOpenReply = (commentId) => {
+    if (!isLoggedIn()) {
+      showToast('Faça login para responder.', 'error');
+      navigate('/login');
+      return;
+    }
+    setReplyingTo(replyingTo === commentId ? null : commentId);
+    setReplyText('');
+  };
+
+  const handleSendReply = async (commentId) => {
+    if (!replyText.trim()) return;
+    setIsSendingReply(true);
+    try {
+      const newReply = await createReply(id, commentId, replyText.trim(), currentUserName, isAdmin);
+      setReplies(prev => ({
+        ...prev,
+        [commentId]: [...(prev[commentId] || []), newReply],
+      }));
+      setReplyText('');
+      setReplyingTo(null);
+      showToast('Resposta enviada!', 'success');
+    } catch (err) {
+      console.error('Erro ao enviar resposta:', err);
+      showToast('Erro ao enviar resposta. Tente novamente.', 'error');
+    } finally {
+      setIsSendingReply(false);
     }
   };
 
@@ -393,7 +477,7 @@ export function PostDetail() {
 
               <span className="btn-interact" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <IconMessage size={20} />
-                <span>{comments.length} <span className="interact-text">Comentários {isBookClub && "(Resenhas)"}</span></span>
+                <span>{totalInteractions} <span className="interact-text">Comentários {isBookClub && "(Resenhas)"}</span></span>
               </span>
 
               <button className={`save-btn ${isSaved ? 'save-btn--saved' : ''}`} onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -417,6 +501,82 @@ export function PostDetail() {
                           </span>
                         </div>
                         <div className="comment-text">{comment.content}</div>
+
+                        {/* Replies do comentário */}
+                        {replies[comment.id] && replies[comment.id].length > 0 && (
+                            <div className="reply-list">
+                              {replies[comment.id].map((reply) => (
+                                  <div key={reply.id} className="reply-item">
+                                    <div className="reply-author">
+                                      {reply.isAdmin ? (
+                                          <span className="reply-badge reply-badge--admin" title="Administrador">
+                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.25"/>
+                                            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                                            <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                          Admin
+                                        </span>
+                                      ) : (
+                                          <span className="reply-badge reply-badge--autor" title="Autor do post">
+                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12z" fill="currentColor" opacity="0.3"/>
+                                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12z" stroke="currentColor" strokeWidth="1.8"/>
+                                            <path d="M3.6 21.6c0-4.64 3.76-8.4 8.4-8.4s8.4 3.76 8.4 8.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                                            <path d="M15.5 17l1.2 1.2L19 15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                          Autor
+                                        </span>
+                                      )}
+                                      <span className="reply-author-name">{reply.authorName}</span>
+                                      <span className="reply-date">{formatDate(reply.createdAt)}</span>
+                                    </div>
+                                    <div className="reply-text">{reply.content}</div>
+                                  </div>
+                              ))}
+                            </div>
+                        )}
+
+                        {/* Botão responder (só para autor do post e admins) */}
+                        {!isBookClub && canReply && (
+                            <div className="reply-action-area">
+                              {replyingTo === comment.id ? (
+                                  <div className="reply-form">
+                                    <textarea
+                                        className="reply-textarea"
+                                        placeholder="Escreva sua resposta..."
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        disabled={isSendingReply}
+                                        rows={3}
+                                    />
+                                    <div className="reply-form-actions">
+                                      <button
+                                          className="reply-cancel-btn"
+                                          onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                          disabled={isSendingReply}
+                                      >
+                                        Cancelar
+                                      </button>
+                                      <button
+                                          className="reply-submit-btn"
+                                          onClick={() => handleSendReply(comment.id)}
+                                          disabled={isSendingReply || !replyText.trim()}
+                                      >
+                                        {isSendingReply ? 'Enviando...' : 'Responder'}
+                                      </button>
+                                    </div>
+                                  </div>
+                              ) : (
+                                  <button
+                                      className="reply-btn"
+                                      onClick={() => handleOpenReply(comment.id)}
+                                  >
+                                    ↩ Responder
+                                  </button>
+                              )}
+                            </div>
+                        )}
                       </div>
                   ))}
                 </div>
