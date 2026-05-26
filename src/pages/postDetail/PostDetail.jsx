@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
-import { getComments, createComment, getReplies, createReply, updateComment, deleteComment } from '../../services/commentService';
+import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
 import { getBookClubById, getBookClubReviews } from '../../services/bookclubService';
 import { isLoggedIn } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
@@ -47,10 +47,8 @@ function getIsAdmin() {
 }
 
 function getCurrentUserName() {
-  // Usa o mesmo localStorage.userName que o Profile.jsx utiliza
   const name = localStorage.getItem('userName');
   if (name) return name;
-  // Fallback: tenta extrair do JWT
   try {
     const token = localStorage.getItem('token');
     if (!token) return null;
@@ -95,6 +93,7 @@ export function PostDetail() {
 
   const [newComment, setNewComment] = useState('');
   const [likes, setLikes] = useState(0);
+  const [commentLikes, setCommentLikes] = useState({});
   const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
@@ -107,22 +106,16 @@ export function PostDetail() {
   const [editForm, setEditForm] = useState(initialEditForm);
   const [isSaving, setIsSaving] = useState(false);
 
-  // ── Replies ──────────────────────────────────────────────────────────────
   const [replies, setReplies] = useState({}); // { [commentId]: Reply[] }
   const [replyingTo, setReplyingTo] = useState(null); // commentId sendo respondido
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
 
-  // ── Edição / exclusão de comentários (admin) ──────────────────────────────
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [isSavingComment, setIsSavingComment] = useState(false);
 
   const isBookClub = categoria === 'clube-leitura';
-
-  useEffect(() => {
-    setIsSaved(getSavedIds().includes(id));
-  }, [id]);
 
   useEffect(() => {
     async function fetchData() {
@@ -151,6 +144,13 @@ export function PostDetail() {
           ]);
           setPost(postData);
           setComments(commentsData || []);
+
+          const likesMap = {};
+          (commentsData || []).forEach(c => {
+            likesMap[c.id] = { count: c.likes || 0, liked: false };
+          });
+          setCommentLikes(likesMap);
+
           setLikes(postData.likeCount || 0);
           setEditForm({ ...initialEditForm, ...postData });
 
@@ -159,7 +159,6 @@ export function PostDetail() {
             setHasLiked(likedList.includes(id));
           }
 
-          // Carrega replies para cada comentário
           if (commentsData && commentsData.length > 0) {
             const repliesMap = {};
             await Promise.all(
@@ -292,11 +291,9 @@ export function PostDetail() {
     }
   };
 
-  // Verifica se o usuário logado é o autor do post OU admin
   const canReply = useMemo(() => {
     if (!post || !isLoggedIn()) return false;
     if (isAdmin) return true;
-    // Mesmo critério do Profile.jsx: verifica se o nome/email do usuário está contido no campo author
     if (post.author) {
       const authorLower = post.author.toLowerCase();
       const userName = (localStorage.getItem('userName') || '').toLowerCase();
@@ -308,7 +305,6 @@ export function PostDetail() {
     return false;
   }, [post, isAdmin]);
 
-  // Contagem total: comentários + replies
   const totalInteractions = useMemo(() => {
     const repliesCount = Object.values(replies).reduce((acc, r) => acc + r.length, 0);
     return comments.length + repliesCount;
@@ -374,12 +370,32 @@ export function PostDetail() {
     try {
       await deleteComment(id, commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
-      // Remove também as replies do comentário deletado
       setReplies(prev => { const next = { ...prev }; delete next[commentId]; return next; });
       showToast('Comentário excluído.', 'success');
     } catch (err) {
       console.error('Erro ao excluir comentário:', err);
       showToast('Erro ao excluir comentário.', 'error');
+    }
+  };
+
+  const handleLikeComment = async (commentId) => {
+    if (!isLoggedIn()) {
+      showToast('Faça login para curtir.', 'error');
+      navigate('/login');
+      return;
+    }
+    const current = commentLikes[commentId] || { count: 0, liked: false };
+    try {
+      if (current.liked) {
+        await unlikeComment(id, commentId);
+        setCommentLikes(prev => ({ ...prev, [commentId]: { count: prev[commentId].count - 1, liked: false } }));
+      } else {
+        await likeComment(id, commentId);
+        setCommentLikes(prev => ({ ...prev, [commentId]: { count: prev[commentId].count + 1, liked: true } }));
+      }
+    } catch (err) {
+      console.error('Erro ao curtir comentário:', err);
+      showToast('Erro ao curtir comentário.', 'error');
     }
   };
 
@@ -597,10 +613,20 @@ export function PostDetail() {
                               </div>
                             </div>
                         ) : (
-                            <div className="comment-text">{comment.content}</div>
-                        )}
+                            <>
+                              <div className="comment-text">{comment.content}</div>
+                              {!isBookClub && (
+                                  <button
+                                      className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
+                                      onClick={() => handleLikeComment(comment.id)}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
+                                  >
+                                    <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
+                                    <span>{commentLikes[comment.id]?.count || 0}</span>
+                                  </button>
+                              )}
+                            </>                        )}
 
-                        {/* Replies do comentário */}
                         {replies[comment.id] && replies[comment.id].length > 0 && (
                             <div className="reply-list">
                               {replies[comment.id].map((reply) => (

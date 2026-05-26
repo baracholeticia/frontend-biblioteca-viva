@@ -19,6 +19,14 @@ export async function deleteComment(workId, commentId) {
     await api.delete(`/work/${workId}/comments/${commentId}`);
 }
 
+export async function likeComment(workId, commentId) {
+    await api.put(`/work/${workId}/comments/${commentId}/like`);
+}
+
+export async function unlikeComment(workId, commentId) {
+    await api.delete(`/work/${workId}/comments/${commentId}/like`);
+}
+
 
 
 const REPLIES_KEY = (workId) => `post_replies_${workId}`;
