@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { IconDashboard, IconDoc, IconMessage, IconUsers, IconMenu, IconClose } from '../../components/icons';
-import { logout, getUserRole } from '../../services/authService';
-import './AdminLayout.css';
-
-const IconShield = ({ size = 20, color = 'currentColor' }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-    </svg>
-);
+import { IconDoc, IconMenu, IconClose } from '../../components/icons';
+import { logout } from '../../services/authService';
+import '../admin/AdminLayout.css';
 
 const IconLogout = ({ size = 20, color = 'currentColor' }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -18,28 +12,15 @@ const IconLogout = ({ size = 20, color = 'currentColor' }) => (
     </svg>
 );
 
-const allNavItems = [
-    { path: '/admin', label: 'Dashboard', icon: <IconDashboard size={20} />, roles: ['ADMIN', 'CURADOR'] },
-    { path: '/admin/posts', label: 'Posts', icon: <IconDoc size={20} />, roles: ['ADMIN', 'CURADOR'] },
-    { path: '/admin/comentarios', label: 'Comentários', icon: <IconMessage size={20} />, roles: ['ADMIN', 'CURADOR'] },
-    { path: '/admin/usuarios', label: 'Usuários', icon: <IconUsers size={20} />, roles: ['ADMIN'] },
-    { path: '/admin/equipe', label: 'Equipe', icon: <IconShield size={20} />, roles: ['ADMIN'] },
+const navItems = [
+    { path: '/curadoria/posts', label: 'Posts', icon: <IconDoc size={20} /> },
 ];
 
-export function AdminLayout({ children }) {
+export function CuradorLayout({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-    const userRole = getUserRole();
-    const navItems = allNavItems.filter(item =>
-        item.roles.some(r => userRole.includes(r))
-    );
-
-    const handleLogoutClick = () => {
-        setShowLogoutModal(true);
-    };
 
     const confirmLogout = () => {
         setShowLogoutModal(false);
@@ -47,13 +28,8 @@ export function AdminLayout({ children }) {
         navigate('/login');
     };
 
-    const cancelLogout = () => {
-        setShowLogoutModal(false);
-    };
-
     return (
         <div className="admin-wrapper">
-
             <div className="admin-mobile-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <button className="admin-hamburger" onClick={() => setSidebarOpen(true)}>
@@ -70,7 +46,7 @@ export function AdminLayout({ children }) {
                     <IconDoc size={28} color="#f0a500" />
                     <div>
                         <strong>Biblioteca Viva</strong>
-                        <small>{userRole.includes('ADMIN') ? 'Administração' : 'Curadoria'}</small>
+                        <small>Curadoria</small>
                     </div>
                     <button className="admin-close-mobile" onClick={() => setSidebarOpen(false)}>
                         <IconClose size={24} color="#94a3b8" />
@@ -79,7 +55,7 @@ export function AdminLayout({ children }) {
 
                 <nav className="admin-nav">
                     {navItems.map(item => {
-                        const isActive = location.pathname.startsWith(item.path) && (item.path !== '/admin' || location.pathname === '/admin');
+                        const isActive = location.pathname.startsWith(item.path);
                         return (
                             <Link
                                 key={item.path}
@@ -98,18 +74,10 @@ export function AdminLayout({ children }) {
                     <button className="admin-back-btn" onClick={() => navigate('/')}>
                         Voltar ao Site
                     </button>
-
                     <button
                         className="admin-back-btn"
-                        onClick={handleLogoutClick}
-                        style={{
-                            color: '#f87171',
-                            borderColor: 'rgba(248, 113, 113, 0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                        }}
+                        onClick={() => setShowLogoutModal(true)}
+                        style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                     >
                         <IconLogout size={16} />
                         Deslogar
@@ -129,7 +97,7 @@ export function AdminLayout({ children }) {
                         <h3 className="admin-modal-title">Sair do sistema</h3>
                         <p className="admin-modal-text">Tem certeza que deseja sair da sua conta?</p>
                         <div className="admin-modal-actions">
-                            <button className="action-btn btn-view" onClick={cancelLogout} style={{ padding: '10px 16px', fontSize: '14px' }}>
+                            <button className="action-btn btn-view" onClick={() => setShowLogoutModal(false)} style={{ padding: '10px 16px', fontSize: '14px' }}>
                                 Cancelar
                             </button>
                             <button className="action-btn btn-delete" onClick={confirmLogout} style={{ padding: '10px 16px', fontSize: '14px' }}>
@@ -139,7 +107,6 @@ export function AdminLayout({ children }) {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }

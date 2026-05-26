@@ -20,7 +20,7 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -30,19 +30,21 @@ export function Login() {
     try {
       const response = await login(email, password);
       showToast('Bem-vindo à Biblioteca Viva!', 'success');
-      
+
       const role = getRoleFromToken(response.token);
-      
-      if (email === 'admin@admin.com' || role.includes('ADMIN') || role.includes('CURADOR')) {
+
+      if (email === 'admin@admin.com' || role.includes('ADMIN')) {
         navigate('/admin');
+      } else if (role.includes('CURADOR')) {
+        navigate('/curadoria/posts');
       } else {
         navigate('/');
       }
     } catch (error) {
       console.error("Erro no login:", error);
-      
+
       const status = error.response ? error.response.status : null;
-      
+
       if (status === 401) {
         showToast('E-mail ou senha inválidos.', 'error');
       } else if (status === 403) {
@@ -50,7 +52,7 @@ export function Login() {
       } else {
         showToast('Erro ao conectar com o servidor. Tente novamente mais tarde.', 'error');
       }
-      
+
     } finally {
       setLoading(false);
     }

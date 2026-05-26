@@ -17,7 +17,13 @@ const ChevronIcon = ({ expanded }) => (
 function AuthorAutocomplete({ value, onChange, users }) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
+  const [prevValue, setPrevValue] = useState(value);
   const wrapperRef = useRef(null);
+
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setInputValue(value || '');
+  }
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -26,8 +32,6 @@ function AuthorAutocomplete({ value, onChange, users }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => { setInputValue(value || ''); }, [value]);
 
   const suggestions = inputValue.trim().length > 0
       ? users.filter(u => {
@@ -135,6 +139,7 @@ function convertFromIsoDuration(durationInfo) {
 export function AdminPosts() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
+  const [filterCategory, setFilterCategory] = useState('');
   const [users, setUsers] = useState([]);
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -168,10 +173,12 @@ export function AdminPosts() {
     getAllUsers().then(setUsers).catch(() => {});
   }, []);
 
-  let filtered = posts.filter(p =>
-      p.title?.toLowerCase().includes(search.toLowerCase()) ||
-      p.author?.toLowerCase().includes(search.toLowerCase())
-  );
+  let filtered = posts.filter(p => {
+    const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase()) ||
+        p.author?.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = !filterCategory || p.type === filterCategory;
+    return matchSearch && matchCategory;
+  });
 
   filtered.sort((a, b) => {
     const dateA = new Date(a.publicationDate || 0).getTime();
@@ -297,6 +304,18 @@ export function AdminPosts() {
                   onChange={e => setSearch(e.target.value)}
               />
             </div>
+
+            <select
+                className="admin-select"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+            >
+              <option value="">Todas as Categorias</option>
+              {Object.entries(categoryTranslations).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+
             <select className="admin-select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
               <option value="newest">Mais Recentes</option>
               <option value="oldest">Mais Antigos</option>

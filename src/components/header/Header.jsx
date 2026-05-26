@@ -31,17 +31,18 @@ export function Header() {
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
 
-  const isAdmin = useMemo(() => {
-    if (!token) return false;
+  const role = useMemo(() => {
+    if (!token) return '';
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const role = payload.role || payload.roles || '';
-      return role.includes('ADMIN') || role === 'ROLE_ADMIN';
+      return payload.role || payload.roles || '';
     } catch (e) {
-      console.error('Error parsing token:', e);
-      return false;
+      return '';
     }
   }, [token]);
+
+  const isAdmin = role.includes('ADMIN');
+  const isCurador = role.includes('CURADOR');
 
   const activeSection = location.pathname.startsWith('/categoria/')
       ? location.pathname.split('/')[2]
@@ -50,6 +51,18 @@ export function Header() {
   const handleSection = (key) => {
     navigate(`/categoria/${key}`);
     setMenuOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    if (!isLoggedIn) {
+      navigate('/login');
+    } else if (isAdmin) {
+      navigate('/admin');
+    } else if (isCurador) {
+      navigate('/curador');
+    } else {
+      navigate('/perfil');
+    }
   };
 
   return (
@@ -66,18 +79,21 @@ export function Header() {
 
             <div className="icons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {isAdmin && (
-                  <button
-                      className="desktop-admin-btn"
-                      onClick={() => navigate('/admin')}
-                  >
+                  <button className="desktop-admin-btn" onClick={() => navigate('/admin')}>
                     Admin
                   </button>
               )}
 
-              {!isAdmin && (
+              {isCurador && (
+                  <button className="desktop-admin-btn" onClick={() => navigate('/curador')}>
+                    Curador
+                  </button>
+              )}
+
+              {!isAdmin && !isCurador && (
                   <button
                       className={`icon-btn ${isLoggedIn ? 'icon-btn--logged' : ''}`}
-                      onClick={() => navigate(isLoggedIn ? '/perfil' : '/login')}
+                      onClick={handleProfileClick}
                   >
                     <IconUser size={20} />
                     {isLoggedIn && <span className="icon-btn__dot" />}
@@ -103,7 +119,6 @@ export function Header() {
           <p className="menu-drawer__title">Menu</p>
           <ul className="menu-drawer__list">
 
-            {/* O Botão Admin aparece AQUI no mobile */}
             {isAdmin && (
                 <li className="mobile-admin-item">
                   <button
@@ -113,6 +128,19 @@ export function Header() {
                   >
                     <span className="menu-drawer__item-icon" style={{ color: '#f0a500' }}><IconDashboard size={20} /></span>
                     <span>Painel de Administração</span>
+                  </button>
+                </li>
+            )}
+
+            {isCurador && (
+                <li className="mobile-admin-item">
+                  <button
+                      className="menu-drawer__item"
+                      onClick={() => { navigate('/curador'); setMenuOpen(false); }}
+                      style={{ color: '#f0a500' }}
+                  >
+                    <span className="menu-drawer__item-icon" style={{ color: '#f0a500' }}><IconDashboard size={20} /></span>
+                    <span>Painel do Curador</span>
                   </button>
                 </li>
             )}
