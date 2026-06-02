@@ -33,7 +33,6 @@ export async function getAllAdminComments(page = 0, size = 100) {
     return response.data.content || [];
 }
 
-// PROVISORIO 
 
 
 export async function getStaff() {
@@ -43,11 +42,18 @@ export async function getStaff() {
 }
 
 export async function createStaff(data) {
-    console.warn("Backend ainda não possui rota POST /admin/staff. Simulação executada.");
-    return { message: "Simulação de criação ok." };
+    const endpoint = data.role === 'ADMIN'
+        ? '/auth/register/admin'
+        : '/auth/register/curador';
+
+    const response = await api.post(endpoint, {
+        name: data.name,
+        email: data.email,
+        password: data.password
+    });
+    return response.data;
 }
 
 export async function deleteStaff(id) {
-    console.warn("Usando a rota geral de deleção provisoriamente.");
     await api.delete(`/admin/users/${id}`);
 }

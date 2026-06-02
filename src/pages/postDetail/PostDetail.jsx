@@ -46,6 +46,16 @@ function getIsAdmin() {
   } catch { return false; }
 }
 
+function getIsCurador() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const role = payload.role || payload.roles || '';
+    return role.includes('CURADOR') || role === 'ROLE_CURADOR';
+  } catch { return false; }
+}
+
 function getCurrentUserName() {
   const name = localStorage.getItem('userName');
   if (name) return name;
@@ -55,6 +65,10 @@ function getCurrentUserName() {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.name || payload.username || null;
   } catch { return null; }
+}
+
+function getCurrentUserEmail() {
+  return localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
 }
 
 const initialEditForm = { title: '', author: '', description: '', content: '', url: '', duration: '', genre: '', rhymeScheme: '', rate: 0, theme: '', themeDescription: '', feedback: '' };
@@ -101,13 +115,15 @@ export function PostDetail() {
   const [isSaved, setIsSaved] = useState(false);
 
   const isAdmin = useMemo(() => getIsAdmin(), []);
+  const isCurador = useMemo(() => getIsCurador(), []);
   const currentUserName = useMemo(() => getCurrentUserName(), []);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(initialEditForm);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [replies, setReplies] = useState({}); // { [commentId]: Reply[] }
-  const [replyingTo, setReplyingTo] = useState(null); // commentId sendo respondido
+  const [replies, setReplies] = useState({});
+  const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
 
@@ -116,6 +132,15 @@ export function PostDetail() {
   const [isSavingComment, setIsSavingComment] = useState(false);
 
   const isBookClub = categoria === 'clube-leitura';
+
+  // Verifica se o usuário logado é o organizador do clube
+  const isOrganizerOfThisClub = useMemo(() => {
+    if (!post || !isBookClub) return false;
+    const userName = (getCurrentUserName() || '').toLowerCase();
+    const userEmail = getCurrentUserEmail().toLowerCase();
+    const organizer = (post.organizerName || '').toLowerCase();
+    return organizer === userName || organizer === userEmail;
+  }, [post, isBookClub]);
 
   useEffect(() => {
     async function fetchData() {
@@ -293,7 +318,7 @@ export function PostDetail() {
 
   const canReply = useMemo(() => {
     if (!post || !isLoggedIn()) return false;
-    if (isAdmin) return true;
+    if (isAdmin || isCurador) return true;
     if (post.author) {
       const authorLower = post.author.toLowerCase();
       const userName = (localStorage.getItem('userName') || '').toLowerCase();
@@ -303,7 +328,7 @@ export function PostDetail() {
       if (emailPrefix && authorLower.includes(emailPrefix)) return true;
     }
     return false;
-  }, [post, isAdmin]);
+  }, [post, isAdmin, isCurador]);
 
   const totalInteractions = useMemo(() => {
     const repliesCount = Object.values(replies).reduce((acc, r) => acc + r.length, 0);
@@ -324,7 +349,7 @@ export function PostDetail() {
     if (!replyText.trim()) return;
     setIsSendingReply(true);
     try {
-      const newReply = await createReply(id, commentId, replyText.trim(), currentUserName, isAdmin);
+      const newReply = await createReply(id, commentId, replyText.trim(), currentUserName, isAdmin || isCurador);
       setReplies(prev => ({
         ...prev,
         [commentId]: [...(prev[commentId] || []), newReply],
@@ -343,7 +368,7 @@ export function PostDetail() {
   const handleEditComment = (comment) => {
     setEditingCommentId(comment.id);
     setEditingCommentText(comment.content);
-    setReplyingTo(null); // fecha qualquer reply aberta
+    setReplyingTo(null);
   };
 
   const handleSaveEditComment = async (commentId) => {
@@ -416,6 +441,10 @@ export function PostDetail() {
   const translatedCategory = categoryTranslations[post.type] || post.type;
   const youtubeId = getYouTubeId(post.url);
 
+  // Determina se o usuário tem permissão de editar/deletar
+  const canManagePost = (isAdmin || isCurador) && !isBookClub;
+  const canManageBookClub = (isAdmin || isCurador) && isBookClub && isOrganizerOfThisClub;
+
   return (
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f6f7f9' }}>
         <Header />
@@ -423,9 +452,12 @@ export function PostDetail() {
           <article className="post-content">
             <button onClick={() => navigate(-1)} className="post-back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Voltar</button>
 
-            {isAdmin && !isBookClub && (
+            {/* Toolbar para posts normais (admin ou curador) */}
+            {canManagePost && (
                 <div className="admin-post-toolbar">
-                  <span className="admin-post-toolbar__label">⚙ Painel Admin</span>
+                  <span className="admin-post-toolbar__label">
+                    {isAdmin ? '⚙ Painel Admin' : '⚙ Painel Curador'}
+                  </span>
                   <div className="admin-post-toolbar__actions">
                     <button
                         className="action-btn btn-edit"
@@ -440,7 +472,22 @@ export function PostDetail() {
                 </div>
             )}
 
-            {isAdmin && isEditing && !isBookClub && (
+            {/* Toolbar para clube do livro (só se for o organizador) */}
+            {canManageBookClub && (
+                <div className="admin-post-toolbar">
+                  <span className="admin-post-toolbar__label">
+                    {isAdmin ? '⚙ Painel Admin' : '⚙ Painel Curador'}
+                  </span>
+                  <div className="admin-post-toolbar__actions">
+                    <button className="action-btn btn-delete" onClick={handleAdminDelete}>
+                      <IconTrash size={14} /> Excluir Clube
+                    </button>
+                  </div>
+                </div>
+            )}
+
+            {/* Painel de edição (admin ou curador, apenas posts normais) */}
+            {canManagePost && isEditing && (
                 <div className="admin-edit-panel">
                   <h3 className="admin-edit-panel__title">Editar Post</h3>
                   <div className="admin-edit-grid">
@@ -559,8 +606,7 @@ export function PostDetail() {
                           <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
                             {formatDate(comment.createdAt)}
                           </span>
-                          {/* Ações de admin no comentário */}
-                          {isAdmin && !isBookClub && (
+                          {(isAdmin || isCurador) && !isBookClub && (
                               <span className="comment-admin-actions">
                               <button
                                   className="action-btn btn-edit"
@@ -585,7 +631,6 @@ export function PostDetail() {
                           )}
                         </div>
 
-                        {/* Modo edição inline */}
                         {editingCommentId === comment.id ? (
                             <div className="comment-edit-form">
                             <textarea
@@ -625,7 +670,8 @@ export function PostDetail() {
                                     <span>{commentLikes[comment.id]?.count || 0}</span>
                                   </button>
                               )}
-                            </>                        )}
+                            </>
+                        )}
 
                         {replies[comment.id] && replies[comment.id].length > 0 && (
                             <div className="reply-list">
@@ -661,7 +707,6 @@ export function PostDetail() {
                             </div>
                         )}
 
-                        {/* Botão responder (só para autor do post e admins) */}
                         {!isBookClub && canReply && (
                             <div className="reply-action-area">
                               {replyingTo === comment.id ? (
