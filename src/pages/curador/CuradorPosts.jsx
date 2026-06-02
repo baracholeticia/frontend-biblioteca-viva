@@ -32,7 +32,6 @@ function AuthorAutocomplete({ value, onChange, users }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-
     const suggestions = inputValue.trim().length > 0
         ? users.filter(u => {
             const q = inputValue.toLowerCase();
@@ -215,6 +214,9 @@ export function CuradorPosts() {
             case 'ShortStory': case 'Article':
                 payload = { ...basePayload, content: form.content };
                 break;
+            case 'Poem':
+                payload = { ...basePayload, content: form.content };
+                break;
             case 'Multimedia': case 'LibraLiterature':
                 payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) };
                 break;
@@ -290,11 +292,10 @@ export function CuradorPosts() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <label style={labelStyle}>Autor</label>
-                            <input
-                                style={inputStyle}
+                            <AuthorAutocomplete
                                 value={form.author}
-                                onChange={e => setForm({ ...form, author: e.target.value })}
-                                placeholder="Nome do autor..."
+                                users={[]}
+                                onChange={(name) => setForm({ ...form, author: name })}
                             />
                         </div>
 
@@ -303,7 +304,8 @@ export function CuradorPosts() {
                             <input style={inputStyle} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                         </div>
 
-                        {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article'].includes(form.type) && (
+                        {/* CORRIGIDO: adicionado 'Poem' na lista */}
+                        {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(form.type) && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
                                 <label style={labelStyle}>Conteúdo</label>
                                 <textarea style={{ ...inputStyle, minHeight: 180 }} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
