@@ -6,11 +6,12 @@ import { Pagination } from '../../components/pagination/Pagination';
 import { getStaff, createStaff, deleteStaff } from '../../services/adminService'; 
 import './AdminLayout.css';
 
-const initialForm = { name: '', email: '', password: '', role: 'Curador' };
+const initialForm = { name: '', email: '', password: '', role: 'CURADOR' };
 
+// Atualizado para as chaves em maiúsculo, como vem do backend
 const roleTranslations = {
-  'Admin': 'Administrador',
-  'Curador': 'Curador'
+  'ADMIN': 'Administrador',
+  'CURADOR': 'Curador'
 };
 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: '#42526e' };
@@ -26,25 +27,49 @@ export function AdminStaff() {
   const [perPage, setPerPage] = useState(10);
   const { showToast } = useToast();
 
+  // Pegamos o e-mail do usuário logado (ajuste caso você guarde com outro nome no localStorage)
+  const currentUserEmail = localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
+
   const fetchStaff = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getStaff(); 
-      setStaffList(data || []);
+      
+      let sortedData = [...(data || [])];
+      
+      // Ordenação: Se for o usuário logado, joga para o topo da lista
+      sortedData.sort((a, b) => {
+        if (a.email === currentUserEmail) {
+          return -1;
+        } else if (b.email === currentUserEmail) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+
+      setStaffList(sortedData);
     } catch (error) {
       console.error(error);
       showToast("Erro ao carregar equipe.", "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, currentUserEmail]);
 
   useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
-  let filtered = staffList.filter(user =>
-      user.name?.toLowerCase().includes(search.toLowerCase()) ||
-      user.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  let filtered = staffList.filter(user => {
+    let matchesSearch = false;
+    
+    if (user.name && user.name.toLowerCase().includes(search.toLowerCase())) {
+        matchesSearch = true;
+    } else if (user.email && user.email.toLowerCase().includes(search.toLowerCase())) {
+        matchesSearch = true;
+    }
+
+    return matchesSearch;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const safePage = Math.min(currentPage, totalPages);
@@ -63,16 +88,22 @@ export function AdminStaff() {
 
     try {
       await createStaff(form);
-      showToast(`${form.role} criado com sucesso!`, "success");
+      showToast(`${roleTranslations[form.role]} criado com sucesso!`, "success");
       setCreating(false);
       fetchStaff();
     } catch (error) {
       console.error(error);
-      showToast(`Erro ao criar ${form.role}.`, "error");
+      showToast(`Erro ao criar membro da equipe.`, "error");
     }
   };
 
   const handleDelete = async (user) => {
+    // Trava de segurança para impedir que o usuário delete a si mesmo
+    if (user.email === currentUserEmail) {
+        showToast("Ação não permitida: Você não pode remover sua própria conta.", "warning");
+        return;
+    }
+
     if (window.confirm(`Tem certeza que deseja remover ${user.name} da equipe?`)) {
       try {
         await deleteStaff(user.id);
@@ -105,24 +136,24 @@ export function AdminStaff() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={labelStyle}>Função (Role)</label>
                   <select style={inputStyle} value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-                    <option value="Curador">Curador</option>
-                    <option value="Admin">Administrador</option>
+                    <option value="CURADOR">Curador</option>
+                    <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={labelStyle}>Nome Completo</label>
-                  <input style={inputStyle} placeholder="Nome do usuário..." value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                  <input style={inputStyle} placeholder="Nome" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={labelStyle}>E-mail</label>
-                  <input type="email" style={inputStyle} placeholder="email@exemplo.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                  <input type="email" style={inputStyle} placeholder="exemplo@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={labelStyle}>Senha Provisória</label>
-                  <input type="password" style={inputStyle} placeholder="Senha forte" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+                  <input type="password" style={inputStyle} placeholder="Senha" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
                 </div>
               </div>
 
@@ -156,34 +187,74 @@ export function AdminStaff() {
             </tr>
             </thead>
             <tbody>
-            {loading ? (
+            {loading && (
                 <tr><td colSpan="4" style={{textAlign:'center'}}>Carregando equipe...</td></tr>
-            ) : filtered.length === 0 ? (
+            )}
+            
+            {!loading && filtered.length === 0 && (
                 <tr><td colSpan="4" style={{textAlign:'center'}}>Nenhum membro encontrado.</td></tr>
-            ) : paginated.map(user => (
-                <tr key={user.id}>
-                  <td>
-                    <div style={{ fontWeight: 600, color: '#0a2a57' }}>{user.name}</div>
-                    <div className="mobile-expanded-content" style={{ display: 'block', padding: 0, marginTop: 4, border: 'none', color: '#6b778c' }}>
-                      <span className="badge badge-active" style={{ fontSize: 10, marginRight: 6 }}>{roleTranslations[user.role] || user.role}</span>
-                      {user.email}
-                    </div>
-                  </td>
-                  <td className="desktop-cell">{user.email}</td>
-                  <td className="desktop-cell">
-                    <span className={user.role === 'Admin' ? 'badge badge-approved' : 'badge badge-active'}>
-                      {roleTranslations[user.role] || user.role}
-                    </span>
-                  </td>
-                  <td className="desktop-cell">
-                    <div className="admin-table-actions">
-                      <button className="action-btn btn-delete" onClick={() => handleDelete(user)}>
-                        <IconTrash size={14} /> <span className="action-text">Remover</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-            ))}
+            )}
+
+            {!loading && paginated.map(user => {
+                let isMe = false;
+                if (user.email === currentUserEmail) {
+                    isMe = true;
+                }
+
+                let rowStyle = {};
+                if (isMe) {
+                    rowStyle = { backgroundColor: '#f0f7ff' }; 
+                }
+
+                let roleBadgeClass = '';
+                if (user.role === 'ADMIN') {
+                    roleBadgeClass = 'badge badge-approved';
+                } else {
+                    roleBadgeClass = 'badge badge-active';
+                }
+
+                return (
+                    <tr key={user.id} style={rowStyle}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: '#0a2a57', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {user.name}
+                            {isMe && (
+                                <span style={{ fontSize: 10, background: '#0052cc', color: 'white', padding: '2px 6px', borderRadius: 4 }}>
+                                    VOCÊ
+                                </span>
+                            )}
+                        </div>
+                        <div className="mobile-expanded-content" style={{ display: 'block', padding: 0, marginTop: 4, border: 'none', color: '#6b778c' }}>
+                          <span className={roleBadgeClass} style={{ fontSize: 10, marginRight: 6 }}>
+                            {roleTranslations[user.role] || user.role}
+                          </span>
+                          {user.email}
+                        </div>
+                      </td>
+                      <td className="desktop-cell">{user.email}</td>
+                      <td className="desktop-cell">
+                        <span className={roleBadgeClass}>
+                          {roleTranslations[user.role] || user.role}
+                        </span>
+                      </td>
+                      <td className="desktop-cell">
+                        <div className="admin-table-actions">
+                          {isMe && (
+                              <button className="action-btn" style={{ opacity: 0.5, cursor: 'not-allowed' }} disabled>
+                                <IconTrash size={14} /> <span className="action-text">Remover</span>
+                              </button>
+                          )}
+                          
+                          {!isMe && (
+                              <button className="action-btn btn-delete" onClick={() => handleDelete(user)}>
+                                <IconTrash size={14} /> <span className="action-text">Remover</span>
+                              </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                );
+            })}
             </tbody>
           </table>
 

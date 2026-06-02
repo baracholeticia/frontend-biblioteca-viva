@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllWorks } from '../../services/workService';
@@ -11,6 +12,37 @@ export function getYoutubeThumbnail(url) {
   );
   if (!match) return null;
   return `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
+}
+
+// NOVA FUNÇÃO DE FORMATAÇÃO DE TEMPO
+export function formatDuration(durationInfo) {
+  if (!durationInfo) return '';
+  
+  // Se já vier formatado ou não for o padrão ISO (evita quebrar se algo mudar)
+  if (typeof durationInfo === 'string' && durationInfo.includes(':') && !durationInfo.startsWith('PT')) {
+    return durationInfo;
+  }
+
+  // Se o backend enviar como um objeto (Padrão do Java Duration em JSON)
+  if (typeof durationInfo === 'object' && durationInfo.seconds !== undefined) {
+    const m = Math.floor(durationInfo.seconds / 60).toString().padStart(2, '0');
+    const s = (durationInfo.seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+  
+  // Se o backend enviar a string no formato ISO (PT5M, PT6M18S, etc)
+  if (typeof durationInfo === 'string' && durationInfo.startsWith('PT')) {
+    const minMatch = durationInfo.match(/(\d+)M/);
+    const secMatch = durationInfo.match(/(\d+)S/);
+    
+    // Pega os números encontrados ou coloca "00"
+    const m = minMatch ? minMatch[1].padStart(2, '0') : '00';
+    const s = secMatch ? secMatch[1].padStart(2, '0') : '00';
+    
+    return `${m}:${s}`;
+  }
+  
+  return String(durationInfo);
 }
 
 export function Multimidia() {
@@ -128,7 +160,8 @@ export function Multimidia() {
                       <div className="mv-list-item__info">
                         <p className="mv-list-item__title">{item.title}</p>
                         <p className="mv-list-item__sub">{item.author}</p>
-                        {item.duration && <span className="mv-list-item__badge">{item.duration}</span>}
+                        {/* AQUI ESTÁ A MÁGICA DA FORMATAÇÃO */}
+                        {item.duration && <span className="mv-list-item__badge">{formatDuration(item.duration)}</span>}
                       </div>
                     </Link>
                   );
@@ -159,7 +192,8 @@ export function Multimidia() {
                       <div className="mv-list-item__info">
                         <p className="mv-list-item__title">{item.title}</p>
                         <p className="mv-list-item__sub">Interpretado por {item.author}</p>
-                        {item.duration && <span className="mv-list-item__badge">{item.duration}</span>}
+                        {/* AQUI ESTÁ A MÁGICA DA FORMATAÇÃO */}
+                        {item.duration && <span className="mv-list-item__badge">{formatDuration(item.duration)}</span>}
                       </div>
                     </Link>
                   );

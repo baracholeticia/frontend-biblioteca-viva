@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { categories as initialCategories } from '../../data/categories';
 import { getHomeData } from '../../services/workService';
+// Importe a função que busca a lista geral de clubes de leitura
+import { getAllBookClubs } from '../../services/bookclubService'; 
 import './Sections.css';
 
 export function Sections() {
@@ -10,7 +12,18 @@ export function Sections() {
   useEffect(() => {
     async function fetchCounts() {
       try {
+        // Busca os dados da home (trabalhos e produções)
         const data = await getHomeData();
+        
+        // Busca a lista de clubes de leitura para pegar o total armazenado
+        let bookClubTotal = 0;
+        try {
+            const bookClubs = await getAllBookClubs();
+            // Verifica se a API usa paginação (page.totalElements) ou apenas um array (content.length)
+            bookClubTotal = bookClubs?.page?.totalElements || bookClubs?.content?.length || 0;
+        } catch (bcError) {
+            console.error("Erro ao buscar total de clubes de leitura:", bcError);
+        }
 
         const counts = {
             'redacoes': data.essayCount || 0,
@@ -23,7 +36,7 @@ export function Sections() {
             'artes': data.artCount || 0,
             'videos': data.multimediaCount || 0,
             'libras': data.libraLiteratureCount || 0,
-            'clube-leitura': 0 
+            'clube-leitura': bookClubTotal 
         };
 
         const updatedCategories = initialCategories.map(cat => ({

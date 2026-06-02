@@ -39,7 +39,7 @@ export async function getAllAdminComments(page = 0, size = 100) {
 export async function getStaff() {
     const response = await api.get('/admin', { params: { page: 0, size: 100 } });
     const todos = response.data.content || [];
-    return todos.filter(u => u.role === 'Admin' || u.role === 'Curador');
+    return todos.filter(u => u.role === 'ADMIN' || u.role === 'CURADOR');
 }
 
 export async function createStaff(data) {

@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+// Importe a função de logout do seu authService
+import { logout } from '../../services/authService';
 import {
   IconBook, IconUser, IconMenu, IconClose,
   IconAward, IconScrollText, IconDoc, IconFeather,
@@ -36,6 +38,7 @@ export function Header() {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.role || payload.roles || '';
+    // eslint-disable-next-line no-unused-vars
     } catch (e) {
       return '';
     }
@@ -62,6 +65,17 @@ export function Header() {
       navigate('/curador');
     } else {
       navigate('/perfil');
+    }
+  };
+
+  // Nova função de Logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+      setMenuOpen(false);
+    } catch (error) {
+      console.error("Erro ao fazer logout", error);
     }
   };
 
@@ -158,6 +172,26 @@ export function Header() {
                   </button>
                 </li>
             ))}
+
+            {/* SEÇÃO DO BOTÃO DE SAIR */}
+            {isLoggedIn && (
+              <>
+                <div style={{ margin: '10px 28px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}></div>
+                <li>
+                  <button className="menu-drawer__item menu-drawer__logout-btn" onClick={handleLogout}>
+                    <span className="menu-drawer__item-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                      </svg>
+                    </span>
+                    <span>Sair</span>
+                  </button>
+                </li>
+              </>
+            )}
+
           </ul>
         </div>
       </>

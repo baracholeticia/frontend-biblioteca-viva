@@ -4,69 +4,6 @@ import { getAllWorks } from '../../services/workService';
 import { IconPencil, IconEye, IconHeart } from '../icons';
 import './Poemas.css';
 
-const FALLBACK_POEMS = [
-    {
-        id: 1,
-        subtype: 'Poesia Regional',
-        title: 'Versos do Sertão',
-        excerpt: '"Entre caatinga e céu azul, / Meu coração é um baú..."',
-        date: '28 Abr 2026',
-        author: 'Beatriz Almeida',
-        views: 234,
-        likes: 112,
-    },
-    {
-        id: 2,
-        subtype: 'Soneto',
-        title: 'Soneto da Esperança',
-        excerpt: '"No alvorecer de um novo dia, / A esperança renasce em poesia..."',
-        date: '25 Abr 2026',
-        author: 'Rafael Oliveira',
-        views: 189,
-        likes: 87,
-    },
-    {
-        id: 3,
-        subtype: 'Haicai',
-        title: 'Haicai das Águas',
-        excerpt: '"Rio que corre / Entre pedras e memórias / Leva minha voz"',
-        date: '22 Abr 2026',
-        author: 'Carolina Freitas',
-        views: 201,
-        likes: 95,
-    },
-    {
-        id: 4,
-        subtype: 'Ode',
-        title: 'Ode à Liberdade',
-        excerpt: '"Que a liberdade seja o vento / Que sopra em cada momento..."',
-        date: '20 Abr 2026',
-        author: 'Lucas Mendes',
-        views: 178,
-        likes: 73,
-    },
-    {
-        id: 5,
-        subtype: 'Verso Livre',
-        title: 'Fragmentos do Cotidiano',
-        excerpt: '"O dia nasce entre grãos de café / e palavras que ainda não vieram..."',
-        date: '18 Abr 2026',
-        author: 'Ana Paula Costa',
-        views: 155,
-        likes: 61,
-    },
-    {
-        id: 6,
-        subtype: 'Poesia Lírica',
-        title: 'Canção do Vento',
-        excerpt: '"O vento canta nas folhas / A música que o silêncio guarda..."',
-        date: '15 Abr 2026',
-        author: 'Thiago Barbosa',
-        views: 142,
-        likes: 58,
-    },
-];
-
 function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -75,7 +12,7 @@ function formatDate(dateString) {
 }
 
 export function Poemas() {
-    const [poems, setPoems] = useState(FALLBACK_POEMS);
+    const [poems, setPoems] = useState([]);
 
     useEffect(() => {
         async function fetchPoems() {

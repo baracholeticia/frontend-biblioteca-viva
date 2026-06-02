@@ -253,3 +253,22 @@
     display: block; /* Mostra dentro da gaveta */
   }
 }
+
+
+/* logout*/
+.menu-drawer__logout-btn {
+  color: #d62828;
+}
+
+.menu-drawer__logout-btn .menu-drawer__item-icon {
+  color: #d62828;
+}
+
+.menu-drawer__logout-btn:hover {
+  color: #ff4d4d;
+  background: rgba(214, 40, 40, 0.1);
+}
+
+.menu-drawer__logout-btn:hover .menu-drawer__item-icon {
+  color: #ff4d4d;
+}

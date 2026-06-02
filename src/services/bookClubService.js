@@ -2,7 +2,7 @@ import api from './api';
 
 export async function getAllBookClubs() {
     const response = await api.get('/bookclub');
-    return response.data.content;
+    return response.data;
 }
 
 export async function getBookClubById(id) {
