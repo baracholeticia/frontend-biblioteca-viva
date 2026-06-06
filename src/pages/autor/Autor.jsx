@@ -4,6 +4,7 @@ import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { getAllWorks } from '../../services/workService';
 import { IconBookmark, IconHeart, IconMessage, IconCalendar, IconPencil } from '../../components/icons';
+import { Pagination } from '../../components/pagination/Pagination';
 import './Autor.css';
 
 const TYPE_MAP = {
@@ -19,28 +20,67 @@ const TYPE_MAP = {
     LibraLiterature: { label: 'Literatura em Libras', route: 'libras'       },
 };
 
+const formatDate = (iso) =>
+    iso ? new Date(iso).toLocaleDateString('pt-BR') : '';
+
+const WorkCard = ({ w, onGoToWork }) => {
+    const typeLabel = TYPE_MAP[w.type]?.label ?? w.type;
+    return (
+        <article className="pf-work-card" onClick={() => onGoToWork(w)}>
+            <span className="pf-work-card__type">{typeLabel.toUpperCase()}</span>
+            <h3 className="pf-work-card__title">{w.title}</h3>
+            <p className="pf-work-card__desc">{w.description}</p>
+            <div className="pf-work-card__footer">
+                <span className="pf-work-card__meta">
+                    <IconPencil size={13} color="#6b778c" /> {w.author}
+                </span>
+                <span className="pf-work-card__meta">
+                    <IconCalendar size={13} color="#6b778c" /> {formatDate(w.publicationDate)}
+                </span>
+            </div>
+            <div className="pf-work-card__stats">
+                <span className="pf-work-card__stat">
+                    <IconHeart size={13} color="#d62828" /> {w.likeCount ?? 0}
+                </span>
+                <span className="pf-work-card__stat">
+                    <IconMessage size={13} color="#6b778c" /> {w.commentCount ?? 0}
+                </span>
+                <span className="pf-work-card__stat">
+                    <IconBookmark size={13} color="#6b778c" />
+                </span>
+            </div>
+        </article>
+    );
+};
+
+const EmptyState = () => (
+    <div className="pf-empty">
+        <IconBookmark size={48} color="#a09880" />
+        <p>Nenhuma publicação encontrada.</p>
+        <span>Este autor ainda não possui publicações.</span>
+    </div>
+);
+
 export function Autor() {
-    const navigate   = useNavigate();
-    const { autor }  = useParams(); // nome do autor vindo da URL: /autor/:autor
+    const navigate  = useNavigate();
+    const { autor } = useParams();
 
-    const [works, setWorks]           = useState([]);
-    const [loading, setLoading]       = useState(true);
-    const [activeFilter, setFilter]   = useState('Todas');
-
-    // Tenta identificar o nome/grade do autor a partir dos dados carregados
-    const [authorName, setAuthorName] = useState('');
+    const [works, setWorks]             = useState([]);
+    const [loading, setLoading]         = useState(true);
+    const [activeFilter, setFilter]     = useState('Todas');
+    const [authorName, setAuthorName]   = useState('');
     const [authorGrade, setAuthorGrade] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage]         = useState(10);
 
     useEffect(() => {
         getAllWorks()
             .then((data) => {
-                // Filtra obras pelo autor passado na URL (case-insensitive)
                 const authorWorks = data.filter(
                     (w) => w.author?.toLowerCase() === decodeURIComponent(autor || '').toLowerCase()
                 );
                 setWorks(authorWorks);
 
-                // Pega o nome e a série do primeiro resultado (se houver)
                 if (authorWorks.length > 0) {
                     setAuthorName(authorWorks[0].author || '');
                     setAuthorGrade(authorWorks[0].grade || authorWorks[0].authorGrade || '');
@@ -52,7 +92,6 @@ export function Autor() {
             .finally(() => setLoading(false));
     }, [autor]);
 
-    /* ─── Filtros dinâmicos baseados nos tipos existentes ── */
     const usedTypes  = [...new Set(works.map((w) => w.type))];
     const filterTabs = ['Todas', ...usedTypes.map((t) => TYPE_MAP[t]?.label ?? t)];
 
@@ -60,9 +99,14 @@ export function Autor() {
         ? works
         : works.filter((w) => (TYPE_MAP[w.type]?.label ?? w.type) === activeFilter);
 
-    /* ─── Helpers ── */
-    const formatDate = (iso) =>
-        iso ? new Date(iso).toLocaleDateString('pt-BR') : '';
+    const totalItems = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+    const paginated  = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+    const handleFilterChange = (f) => {
+        setFilter(f);
+        setCurrentPage(1);
+    };
 
     const displayName = authorName || decodeURIComponent(autor || '');
 
@@ -77,52 +121,11 @@ export function Autor() {
         navigate(`/${route}/${w.id}`);
     };
 
-    /* ─── Sub-components ── */
-    const WorkCard = ({ w }) => {
-        const typeLabel = TYPE_MAP[w.type]?.label ?? w.type;
-        return (
-            <article className="pf-work-card" onClick={() => goToWork(w)}>
-                <span className="pf-work-card__type">{typeLabel.toUpperCase()}</span>
-                <h3 className="pf-work-card__title">{w.title}</h3>
-                <p className="pf-work-card__desc">{w.description}</p>
-                <div className="pf-work-card__footer">
-                    <span className="pf-work-card__meta">
-                        <IconPencil size={13} color="#6b778c" /> {w.author}
-                    </span>
-                    <span className="pf-work-card__meta">
-                        <IconCalendar size={13} color="#6b778c" /> {formatDate(w.publicationDate)}
-                    </span>
-                </div>
-                <div className="pf-work-card__stats">
-                    <span className="pf-work-card__stat">
-                        <IconHeart size={13} color="#d62828" /> {w.likeCount ?? 0}
-                    </span>
-                    <span className="pf-work-card__stat">
-                        <IconMessage size={13} color="#6b778c" /> {w.commentCount ?? 0}
-                    </span>
-                    <span className="pf-work-card__stat">
-                        <IconBookmark size={13} color="#6b778c" />
-                    </span>
-                </div>
-            </article>
-        );
-    };
-
-    const EmptyState = () => (
-        <div className="pf-empty">
-            <IconBookmark size={48} color="#a09880" />
-            <p>Nenhuma publicação encontrada.</p>
-            <span>Este autor ainda não possui publicações.</span>
-        </div>
-    );
-
-    /* ─── Render ── */
     return (
         <>
             <Header />
             <main className="pf-page">
 
-                {/* ── Hero (sem botão Sair) ── */}
                 <div className="pf-hero">
                     <div className="pf-hero__inner">
                         <div className="pf-avatar">{initials || '?'}</div>
@@ -133,20 +136,18 @@ export function Autor() {
                     </div>
                 </div>
 
-                {/* ── Filtros por tipo de publicação ── */}
                 <div className="pf-filters pf-filters--standalone">
                     {filterTabs.map((f) => (
                         <button
                             key={f}
                             className={`pf-filter ${activeFilter === f ? 'pf-filter--active' : ''}`}
-                            onClick={() => setFilter(f)}
+                            onClick={() => handleFilterChange(f)}
                         >
                             {f}
                         </button>
                     ))}
                 </div>
 
-                {/* ── Conteúdo ── */}
                 <div className="pf-body">
                     <section className="pf-works">
                         {loading ? (
@@ -157,11 +158,25 @@ export function Autor() {
                         ) : filtered.length === 0 ? (
                             <EmptyState />
                         ) : (
-                            <div className="pf-works__grid">
-                                {filtered.map((w) => (
-                                    <WorkCard key={w.id} w={w} />
-                                ))}
-                            </div>
+                            <>
+                                <div className="pf-works__grid">
+                                    {paginated.map((w) => (
+                                        <WorkCard key={w.id} w={w} onGoToWork={goToWork} />
+                                    ))}
+                                </div>
+
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    totalItems={totalItems}
+                                    perPage={perPage}
+                                    onPageChange={setCurrentPage}
+                                    onPerPageChange={(value) => {
+                                        setPerPage(value);
+                                        setCurrentPage(1);
+                                    }}
+                                />
+                            </>
                         )}
                     </section>
                 </div>
