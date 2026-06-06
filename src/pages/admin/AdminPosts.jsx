@@ -210,6 +210,7 @@ export function AdminPosts() {
       case 'Cordel': payload = { ...basePayload, content: form.content, rhymeScheme: form.rhymeScheme }; break;
       case 'Tale': payload = { ...basePayload, content: form.content, genre: form.genre }; break;
       case 'ShortStory': case 'Article': payload = { ...basePayload, content: form.content }; break;
+      case 'Poem': payload = { ...basePayload, content: form.content }; break;
       case 'Multimedia': case 'LibraLiterature': payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) }; break;
       case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break;
       default: payload = { ...basePayload };
@@ -279,7 +280,15 @@ export function AdminPosts() {
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Descrição</label><input style={inputStyle} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-                {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article'].includes(form.type) && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}><label style={labelStyle}>Conteúdo</label><textarea style={{ ...inputStyle, minHeight: 180 }} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} /></div>)}
+
+                {/* CORRIGIDO: adicionado 'Poem' na lista */}
+                {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(form.type) && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                      <label style={labelStyle}>Conteúdo</label>
+                      <textarea style={{ ...inputStyle, minHeight: 180 }} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
+                    </div>
+                )}
+
                 {['Art', 'Infographic', 'Multimedia', 'LibraLiterature'].includes(form.type) && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}><label style={labelStyle}>URL (Imagem/Youtube)</label><input style={inputStyle} value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} /></div>)}
                 {['Multimedia', 'LibraLiterature'].includes(form.type) && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Duração (03:30)</label><input style={inputStyle} value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} /></div>)}
                 {form.type === 'Cordel' && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Rimas</label><input style={inputStyle} value={form.rhymeScheme} onChange={e => setForm({ ...form, rhymeScheme: e.target.value })} /></div>)}
