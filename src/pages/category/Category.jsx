@@ -76,7 +76,12 @@ export function Category() {
                     setWorks(data);
                 } else if (id === 'clube-leitura') {
                     const clubData = await getAllBookClubs();
-                    const mappedClubs = clubData.map(bc => ({
+                    
+                    // Verifica se os dados estão dentro de 'content' (padrão de paginação) ou se já é o array direto
+                    const clubsArray = clubData.content || clubData; 
+
+                    // Agora sim, iteramos sobre o array extraído
+                    const mappedClubs = (Array.isArray(clubsArray) ? clubsArray : []).map(bc => ({
                         id: bc.id,
                         type: 'BookClub',
                         title: bc.bookName,
@@ -87,6 +92,7 @@ export function Category() {
                         likeCount: bc.averageRating || 0,
                         commentCount: bc.participantsCount || 0
                     }));
+                    
                     setWorks(mappedClubs);
                 } else {
                     if (!currentCategory) return;
