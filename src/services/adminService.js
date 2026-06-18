@@ -29,8 +29,8 @@ export async function getDashboardData() {
 }
 
 export async function getAllAdminComments(page = 0, size = 100) {
-    const response = await api.get('/admin/comments', { params: { page, size } });
-    return response.data.content || [];
+    const response = await api.get(`/admin/comments?page=${page}&size=${size}`);
+    return response.data;
 }
 
 

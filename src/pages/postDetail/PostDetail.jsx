@@ -27,7 +27,11 @@ const categoryTranslations = {
 const getYouTubeId = (url) => {
   if (!url) return null;
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
-  return match ? match[1] : null;
+  if (match) {
+      return match[1];
+  } else {
+      return null;
+  }
 };
 
 const typeEndpoints = {
@@ -42,7 +46,12 @@ function getIsAdmin() {
     if (!token) return false;
     const payload = JSON.parse(atob(token.split('.')[1]));
     const role = payload.role || payload.roles || '';
-    return role.includes('ADMIN') || role === 'ROLE_ADMIN';
+    
+    if (role.includes('ADMIN') || role === 'ROLE_ADMIN') {
+        return true;
+    } else {
+        return false;
+    }
   } catch { return false; }
 }
 
@@ -52,7 +61,12 @@ function getIsCurador() {
     if (!token) return false;
     const payload = JSON.parse(atob(token.split('.')[1]));
     const role = payload.role || payload.roles || '';
-    return role.includes('CURADOR') || role === 'ROLE_CURADOR';
+    
+    if (role.includes('CURADOR') || role === 'ROLE_CURADOR') {
+        return true;
+    } else {
+        return false;
+    }
   } catch { return false; }
 }
 
@@ -63,12 +77,28 @@ function getCurrentUserName() {
     const token = localStorage.getItem('token');
     if (!token) return null;
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.name || payload.username || null;
+    
+    if (payload.name) {
+        return payload.name;
+    } else if (payload.username) {
+        return payload.username;
+    } else {
+        return null;
+    }
   } catch { return null; }
 }
 
 function getCurrentUserEmail() {
-  return localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
+  let email = localStorage.getItem('email');
+  if (!email) {
+      email = localStorage.getItem('userEmail');
+  }
+  
+  if (email) {
+      return email;
+  } else {
+      return '';
+  }
 }
 
 const initialEditForm = { title: '', author: '', description: '', content: '', url: '', duration: '', genre: '', rhymeScheme: '', rate: 0, theme: '', themeDescription: '', feedback: '' };
@@ -76,23 +106,49 @@ const initialEditForm = { title: '', author: '', description: '', content: '', u
 function convertToIsoDuration(t) {
   if (!t) return '';
   if (t.startsWith('PT')) return t;
-  if (t.includes(':')) { const [m, s] = t.split(':'); return `PT${parseInt(m||0)}M${parseInt(s||0)}S`; }
-  return `PT${parseInt(t||0)}M`;
+  
+  if (t.includes(':')) { 
+      const [m, s] = t.split(':'); 
+      return `PT${parseInt(m||0)}M${parseInt(s||0)}S`; 
+  } else {
+      return `PT${parseInt(t||0)}M`;
+  }
 }
 
-const getSavedKey = () => `savedPosts_${localStorage.getItem('userEmail') || 'guest'}`;
+const getSavedKey = () => {
+    let email = localStorage.getItem('userEmail');
+    if (!email) {
+        email = 'guest';
+    }
+    return `savedPosts_${email}`;
+};
 
 function getSavedIds() {
-  return JSON.parse(localStorage.getItem(getSavedKey()) || '[]');
+  const stored = localStorage.getItem(getSavedKey());
+  if (stored) {
+      return JSON.parse(stored);
+  } else {
+      return [];
+  }
 }
 
 function toggleSaved(postId) {
   const saved = getSavedIds();
-  const updated = saved.includes(postId)
-      ? saved.filter((i) => i !== postId)
-      : [...saved, postId];
+  let updated;
+  
+  if (saved.includes(postId)) {
+      updated = saved.filter((i) => i !== postId);
+  } else {
+      updated = [...saved, postId];
+  }
+  
   localStorage.setItem(getSavedKey(), JSON.stringify(updated));
-  return updated.includes(postId);
+  
+  if (updated.includes(postId)) {
+      return true;
+  } else {
+      return false;
+  }
 }
 
 export function PostDetail() {
@@ -131,15 +187,22 @@ export function PostDetail() {
   const [editingCommentText, setEditingCommentText] = useState('');
   const [isSavingComment, setIsSavingComment] = useState(false);
 
-  const isBookClub = categoria === 'clube-leitura';
+  let isBookClub = false;
+  if (categoria === 'clube-leitura') {
+      isBookClub = true;
+  }
 
-  // Verifica se o usuário logado é o organizador do clube
   const isOrganizerOfThisClub = useMemo(() => {
     if (!post || !isBookClub) return false;
     const userName = (getCurrentUserName() || '').toLowerCase();
     const userEmail = getCurrentUserEmail().toLowerCase();
     const organizer = (post.organizerName || '').toLowerCase();
-    return organizer === userName || organizer === userEmail;
+    
+    if (organizer === userName || organizer === userEmail) {
+        return true;
+    } else {
+        return false;
+    }
   }, [post, isBookClub]);
 
   useEffect(() => {
@@ -160,27 +223,56 @@ export function PostDetail() {
             type: 'BookClub',
             publicationDate: bc.date
           });
-          setComments(revs.content || []);
-          setLikes(bc.averageRating || 0);
+          
+          if (revs.content) {
+              setComments(revs.content);
+          } else {
+              setComments([]);
+          }
+          
+          if (bc.averageRating) {
+              setLikes(bc.averageRating);
+          } else {
+              setLikes(0);
+          }
         } else {
-          const [postData, commentsData] = await Promise.all([
-            getWorkById(id),
-            getComments(id).catch(() => [])
-          ]);
+          let commentsData;
+          try {
+              commentsData = await getComments(id);
+          } catch (err) {
+              commentsData = [];
+          }
+          
+          const postData = await getWorkById(id);
+          
           setPost(postData);
           setComments(commentsData || []);
 
           const likesMap = {};
           (commentsData || []).forEach(c => {
-            likesMap[c.id] = { count: c.likes || 0, liked: false };
+              let commentLikesCount = 0;
+              if (c.likes) {
+                  commentLikesCount = c.likes;
+              }
+              likesMap[c.id] = { count: commentLikesCount, liked: false };
           });
           setCommentLikes(likesMap);
 
-          setLikes(postData.likeCount || 0);
+          if (postData.likeCount) {
+              setLikes(postData.likeCount);
+          } else {
+              setLikes(0);
+          }
+          
           setEditForm({ ...initialEditForm, ...postData });
 
           if (isLoggedIn()) {
-            const likedList = await getLikedWorks().catch(() => []);
+            let likedList = [];
+            try {
+                likedList = await getLikedWorks();
+            } catch (err) {
+                likedList = [];
+            }
             setHasLiked(likedList.includes(id));
           }
 
@@ -188,8 +280,16 @@ export function PostDetail() {
             const repliesMap = {};
             await Promise.all(
                 commentsData.map(async (c) => {
-                  const r = await getReplies(id, c.id).catch(() => []);
-                  if (r && r.length > 0) repliesMap[c.id] = r;
+                  let r = null;
+                  try {
+                      r = await getReplies(id, c.id);
+                  } catch (err) {
+                      r = null;
+                  }
+                  
+                  if (r) {
+                      repliesMap[c.id] = r;
+                  }
                 })
             );
             setReplies(repliesMap);
@@ -226,17 +326,21 @@ export function PostDetail() {
         author: editForm.author,
         description: editForm.description,
         publicationDate: post.publicationDate,
-        ...(editForm.content !== undefined && { content: editForm.content }),
-        ...(editForm.url !== undefined && { url: editForm.url }),
-        ...(editForm.genre !== undefined && { genre: editForm.genre }),
-        ...(editForm.rhymeScheme !== undefined && { rhymeScheme: editForm.rhymeScheme }),
-        ...(editForm.rate !== undefined && { rate: Number(editForm.rate) }),
-        ...(editForm.theme !== undefined && { theme: editForm.theme }),
-        ...(editForm.themeDescription !== undefined && { themeDescription: editForm.themeDescription }),
-        ...(editForm.feedback !== undefined && { feedback: editForm.feedback }),
-        ...(['Multimedia', 'LibraLiterature'].includes(post.type) && editForm.duration
-            ? { duration: convertToIsoDuration(editForm.duration) } : {}),
       };
+      
+      if (editForm.content !== undefined) payload.content = editForm.content;
+      if (editForm.url !== undefined) payload.url = editForm.url;
+      if (editForm.genre !== undefined) payload.genre = editForm.genre;
+      if (editForm.rhymeScheme !== undefined) payload.rhymeScheme = editForm.rhymeScheme;
+      if (editForm.rate !== undefined) payload.rate = Number(editForm.rate);
+      if (editForm.theme !== undefined) payload.theme = editForm.theme;
+      if (editForm.themeDescription !== undefined) payload.themeDescription = editForm.themeDescription;
+      if (editForm.feedback !== undefined) payload.feedback = editForm.feedback;
+      
+      if (['Multimedia', 'LibraLiterature'].includes(post.type) && editForm.duration) {
+          payload.duration = convertToIsoDuration(editForm.duration);
+      }
+
       await updateWork(endpointType, id, payload);
       setPost(prev => ({ ...prev, ...editForm }));
       setIsEditing(false);
@@ -257,7 +361,12 @@ export function PostDetail() {
     }
     const nowSaved = toggleSaved(id);
     setIsSaved(nowSaved);
-    showToast(nowSaved ? 'Salvo nos favoritos!' : 'Removido dos favoritos.', 'success');
+    
+    if (nowSaved) {
+        showToast('Salvo nos favoritos!', 'success');
+    } else {
+        showToast('Removido dos favoritos.', 'success');
+    }
   };
 
   const handleLike = async () => {
@@ -295,6 +404,7 @@ export function PostDetail() {
       return;
     }
     if (newComment.trim() === '') return;
+    
     setIsCommenting(true);
     try {
       if (isBookClub) {
@@ -319,19 +429,27 @@ export function PostDetail() {
   const canReply = useMemo(() => {
     if (!post || !isLoggedIn()) return false;
     if (isAdmin || isCurador) return true;
+    
     if (post.author) {
       const authorLower = post.author.toLowerCase();
       const userName = (localStorage.getItem('userName') || '').toLowerCase();
       const userEmail = localStorage.getItem('userEmail') || '';
       const emailPrefix = userEmail.split('@')[0].toLowerCase();
-      if (userName && (authorLower.includes(userName) || userName.includes(authorLower))) return true;
-      if (emailPrefix && authorLower.includes(emailPrefix)) return true;
+      
+      if (userName && (authorLower.includes(userName) || userName.includes(authorLower))) {
+          return true;
+      } else if (emailPrefix && authorLower.includes(emailPrefix)) {
+          return true;
+      }
     }
     return false;
   }, [post, isAdmin, isCurador]);
 
   const totalInteractions = useMemo(() => {
-    const repliesCount = Object.values(replies).reduce((acc, r) => acc + r.length, 0);
+    let repliesCount = 0;
+    Object.values(replies).forEach(r => {
+        if (r) repliesCount += 1;
+    });
     return comments.length + repliesCount;
   }, [comments, replies]);
 
@@ -341,7 +459,12 @@ export function PostDetail() {
       navigate('/login');
       return;
     }
-    setReplyingTo(replyingTo === commentId ? null : commentId);
+    
+    if (replyingTo === commentId) {
+        setReplyingTo(null);
+    } else {
+        setReplyingTo(commentId);
+    }
     setReplyText('');
   };
 
@@ -352,7 +475,7 @@ export function PostDetail() {
       const newReply = await createReply(id, commentId, replyText.trim(), currentUserName, isAdmin || isCurador);
       setReplies(prev => ({
         ...prev,
-        [commentId]: [...(prev[commentId] || []), newReply],
+        [commentId]: newReply,
       }));
       setReplyText('');
       setReplyingTo(null);
@@ -376,9 +499,13 @@ export function PostDetail() {
     setIsSavingComment(true);
     try {
       await updateComment(id, commentId, editingCommentText.trim());
-      setComments(prev => prev.map(c =>
-          c.id === commentId ? { ...c, content: editingCommentText.trim() } : c
-      ));
+      setComments(prev => prev.map(c => {
+          if (c.id === commentId) {
+              return { ...c, content: editingCommentText.trim() };
+          } else {
+              return c;
+          }
+      }));
       setEditingCommentId(null);
       setEditingCommentText('');
       showToast('Comentário atualizado!', 'success');
@@ -395,7 +522,13 @@ export function PostDetail() {
     try {
       await deleteComment(id, commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
-      setReplies(prev => { const next = { ...prev }; delete next[commentId]; return next; });
+      
+      setReplies(prev => { 
+          const next = { ...prev }; 
+          delete next[commentId]; 
+          return next; 
+      });
+      
       showToast('Comentário excluído.', 'success');
     } catch (err) {
       console.error('Erro ao excluir comentário:', err);
@@ -409,7 +542,12 @@ export function PostDetail() {
       navigate('/login');
       return;
     }
-    const current = commentLikes[commentId] || { count: 0, liked: false };
+    
+    let current = commentLikes[commentId];
+    if (!current) {
+        current = { count: 0, liked: false };
+    }
+    
     try {
       if (current.liked) {
         await unlikeComment(id, commentId);
@@ -438,12 +576,22 @@ export function PostDetail() {
 
   if (loading || error || !post) return null;
 
-  const translatedCategory = categoryTranslations[post.type] || post.type;
+  let translatedCategory = post.type;
+  if (categoryTranslations[post.type]) {
+      translatedCategory = categoryTranslations[post.type];
+  }
+  
   const youtubeId = getYouTubeId(post.url);
 
-  // Determina se o usuário tem permissão de editar/deletar
-  const canManagePost = (isAdmin || isCurador) && !isBookClub;
-  const canManageBookClub = (isAdmin || isCurador) && isBookClub && isOrganizerOfThisClub;
+  let canManagePost = false;
+  if ((isAdmin || isCurador) && !isBookClub) {
+      canManagePost = true;
+  }
+  
+  let canManageBookClub = false;
+  if ((isAdmin || isCurador) && isBookClub && isOrganizerOfThisClub) {
+      canManageBookClub = true;
+  }
 
   return (
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f6f7f9' }}>
@@ -452,7 +600,6 @@ export function PostDetail() {
           <article className="post-content">
             <button onClick={() => navigate(-1)} className="post-back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Voltar</button>
 
-            {/* Toolbar para posts normais (admin ou curador) */}
             {canManagePost && (
                 <div className="admin-post-toolbar">
                   <span className="admin-post-toolbar__label">
@@ -472,7 +619,6 @@ export function PostDetail() {
                 </div>
             )}
 
-            {/* Toolbar para clube do livro (só se for o organizador) */}
             {canManageBookClub && (
                 <div className="admin-post-toolbar">
                   <span className="admin-post-toolbar__label">
@@ -486,7 +632,6 @@ export function PostDetail() {
                 </div>
             )}
 
-            {/* Painel de edição (admin ou curador, apenas posts normais) */}
             {canManagePost && isEditing && (
                 <div className="admin-edit-panel">
                   <h3 className="admin-edit-panel__title">Editar Post</h3>
@@ -611,10 +756,14 @@ export function PostDetail() {
                               <button
                                   className="action-btn btn-edit"
                                   title="Editar comentário"
-                                  onClick={() => editingCommentId === comment.id
-                                      ? (setEditingCommentId(null), setEditingCommentText(''))
-                                      : handleEditComment(comment)
-                                  }
+                                  onClick={() => {
+                                      if (editingCommentId === comment.id) {
+                                          setEditingCommentId(null);
+                                          setEditingCommentText('');
+                                      } else {
+                                          handleEditComment(comment);
+                                      }
+                                  }}
                               >
                                 <IconPencil size={13} />
                                 {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
@@ -673,37 +822,23 @@ export function PostDetail() {
                             </>
                         )}
 
-                        {replies[comment.id] && replies[comment.id].length > 0 && (
+                        {/* Renderizando a Resposta Única */}
+                        {replies[comment.id] && !Array.isArray(replies[comment.id]) && (
                             <div className="reply-list">
-                              {replies[comment.id].map((reply) => (
-                                  <div key={reply.id} className="reply-item">
+                                <div className="reply-item">
                                     <div className="reply-author">
-                                      {reply.isAdmin ? (
-                                          <span className="reply-badge reply-badge--admin" title="Administrador">
-                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.25"/>
-                                            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                                            <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                                          </svg>
-                                          Admin
+                                        <span className="reply-badge reply-badge--admin" title="Administrador ou Autor">
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.25"/>
+                                                <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                                                <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                            {replies[comment.id].authorName || 'Resposta'}
                                         </span>
-                                      ) : (
-                                          <span className="reply-badge reply-badge--autor" title="Autor do post">
-                                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12z" fill="currentColor" opacity="0.3"/>
-                                            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12z" stroke="currentColor" strokeWidth="1.8"/>
-                                            <path d="M3.6 21.6c0-4.64 3.76-8.4 8.4-8.4s8.4 3.76 8.4 8.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                                            <path d="M15.5 17l1.2 1.2L19 15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                                          </svg>
-                                          Autor
-                                        </span>
-                                      )}
-                                      <span className="reply-author-name">{reply.authorName}</span>
-                                      <span className="reply-date">{formatDate(reply.createdAt)}</span>
+                                        <span className="reply-date">{formatDate(replies[comment.id].createdAt)}</span>
                                     </div>
-                                    <div className="reply-text">{reply.content}</div>
-                                  </div>
-                              ))}
+                                    <div className="reply-text">{replies[comment.id].content}</div>
+                                </div>
                             </div>
                         )}
 
