@@ -1,3 +1,4 @@
+/* --- SEÇÃO SUPERIOR (CONVITE) --- */
 .invite {
   background-color: #0b2b5a;
   color: white;
@@ -31,14 +32,39 @@
   background-color: #b91d1d;
 }
 
+
+/* --- SEÇÃO INFERIOR (RODAPÉ COM AS LOGOS) --- */
 .footer {
-  background-color: #0a2a57;
-  color: #94a3b8;
+  background-color: #f6f7f9;/* Fundo branco para destacar as logos */
+  color: #475569;            /* Texto em cinza escuro para boa legibilidade */
   text-align: center;
-  padding: 30px;
-  border-top: 1px solid #1e3a8a;
+  padding: 40px 20px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .footer strong {
-  color: white;
+  color: #0a2a57;            /* Cor azul escura da identidade do site */
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
+/* Container que alinha as logos lado a lado */
+.footer-logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 35px;                 /* Espaço entre as duas logos */
+  margin: 25px 0;
+}
+
+/* Ajuste individual das imagens */
+.footer-logos img {
+  height: 45px;              /* Mantém as duas com a mesma altura */
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.footer-logos img:hover {
+  transform: scale(1.05);    /* Efeito sutil ao passar o mouse */
 }
