@@ -498,3 +498,16 @@
         font-size: 1.5rem;
     }
 }
+
+.cl-book-card--clickable {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.cl-book-card--clickable:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}

@@ -4,7 +4,7 @@ import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
 import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
-import { getBookClubById, getBookClubReviews } from '../../services/bookclubService';
+import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub } from '../../services/bookclubService';
 import { isLoggedIn } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
 import { IconHeart, IconMessage, IconBookmark, IconPencil, IconTrash } from '../../components/icons';
@@ -88,19 +88,6 @@ function getCurrentUserName() {
   } catch { return null; }
 }
 
-function getCurrentUserEmail() {
-  let email = localStorage.getItem('email');
-  if (!email) {
-      email = localStorage.getItem('userEmail');
-  }
-  
-  if (email) {
-      return email;
-  } else {
-      return '';
-  }
-}
-
 const initialEditForm = { title: '', author: '', description: '', content: '', url: '', duration: '', genre: '', rhymeScheme: '', rate: 0, theme: '', themeDescription: '', feedback: '' };
 
 function convertToIsoDuration(t) {
@@ -170,6 +157,11 @@ export function PostDetail() {
   const [imageError, setImageError] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
+  const [isEditingBookClub, setIsEditingBookClub] = useState(false);
+  const [bookClubEditForm, setBookClubEditForm] = useState({
+    bookName: '', bookAuthor: '', bookSynopses: '', bookCoverUrl: '', date: '', location: ''
+  });
+
   const isAdmin = useMemo(() => getIsAdmin(), []);
   const isCurador = useMemo(() => getIsCurador(), []);
   const currentUserName = useMemo(() => getCurrentUserName(), []);
@@ -194,15 +186,22 @@ export function PostDetail() {
 
   const isOrganizerOfThisClub = useMemo(() => {
     if (!post || !isBookClub) return false;
-    const userName = (getCurrentUserName() || '').toLowerCase();
-    const userEmail = getCurrentUserEmail().toLowerCase();
-    const organizer = (post.organizerName || '').toLowerCase();
-    
-    if (organizer === userName || organizer === userEmail) {
-        return true;
-    } else {
-        return false;
-    }
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const tokenEmail = (payload.sub || payload.email || '').toLowerCase();
+      const tokenName = (payload.name || payload.username || '').toLowerCase();
+      const organizer = (post.organizerName || '').toLowerCase();
+      const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase();
+
+      return (
+          organizer === tokenName ||
+          organizer === tokenEmail ||
+          organizer === userEmail ||
+          organizer === userEmail.split('@')[0]
+      );
+    } catch { return false; }
   }, [post, isBookClub]);
 
   useEffect(() => {
@@ -308,12 +307,17 @@ export function PostDetail() {
   const handleAdminDelete = async () => {
     if (!window.confirm('Tem certeza que deseja excluir este post?')) return;
     try {
-      await deleteWork(id);
-      showToast('Post excluído com sucesso.', 'success');
+      if (isBookClub) {
+        await deleteBookClub(id);
+        showToast('Clube excluído com sucesso.', 'success');
+      } else {
+        await deleteWork(id);
+        showToast('Post excluído com sucesso.', 'success');
+      }
       navigate(-1);
     } catch (err) {
       console.error(err);
-      showToast('Erro ao excluir o post.', 'error');
+      showToast('Erro ao excluir.', 'error');
     }
   };
 
@@ -345,6 +349,37 @@ export function PostDetail() {
       setPost(prev => ({ ...prev, ...editForm }));
       setIsEditing(false);
       showToast('Post atualizado com sucesso!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao salvar alterações.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBookClubSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        bookName: bookClubEditForm.bookName,
+        bookAuthor: bookClubEditForm.bookAuthor,
+        bookSynopses: bookClubEditForm.bookSynopses,
+        bookCoverUrl: bookClubEditForm.bookCoverUrl,
+        date: bookClubEditForm.date ? new Date(bookClubEditForm.date).toISOString() : post.date,
+        location: bookClubEditForm.location,
+      };
+      await updateBookClub(id, payload);
+      setPost(prev => ({
+        ...prev,
+        ...payload,
+        title: payload.bookName,
+        author: payload.bookAuthor,
+        description: payload.bookSynopses,
+        url: payload.bookCoverUrl,
+        publicationDate: payload.date,
+      }));
+      setIsEditingBookClub(false);
+      showToast('Clube atualizado com sucesso!', 'success');
     } catch (err) {
       console.error(err);
       showToast('Erro ao salvar alterações.', 'error');
@@ -583,15 +618,8 @@ export function PostDetail() {
   
   const youtubeId = getYouTubeId(post.url);
 
-  let canManagePost = false;
-  if ((isAdmin || isCurador) && !isBookClub) {
-      canManagePost = true;
-  }
-  
-  let canManageBookClub = false;
-  if ((isAdmin || isCurador) && isBookClub && isOrganizerOfThisClub) {
-      canManageBookClub = true;
-  }
+  const canManagePost = (isAdmin || isCurador) && !isBookClub;
+  const canManageBookClub = isBookClub && (isAdmin || (isCurador && isOrganizerOfThisClub));
 
   return (
       <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f6f7f9' }}>
@@ -619,12 +647,29 @@ export function PostDetail() {
                 </div>
             )}
 
+            {/* Toolbar para clube do livro */}
             {canManageBookClub && (
                 <div className="admin-post-toolbar">
                   <span className="admin-post-toolbar__label">
                     {isAdmin ? '⚙ Painel Admin' : '⚙ Painel Curador'}
                   </span>
                   <div className="admin-post-toolbar__actions">
+                    <button
+                        className="action-btn btn-edit"
+                        onClick={() => {
+                          setBookClubEditForm({
+                            bookName: post.bookName || post.title || '',
+                            bookAuthor: post.bookAuthor || post.author || '',
+                            bookSynopses: post.bookSynopses || post.description || '',
+                            bookCoverUrl: post.bookCoverUrl || post.url || '',
+                            date: post.date ? post.date.slice(0, 16) : '',
+                            location: post.location || '',
+                          });
+                          setIsEditingBookClub(prev => !prev);
+                        }}
+                    >
+                      <IconPencil size={14} /> {isEditingBookClub ? 'Cancelar' : 'Editar Clube'}
+                    </button>
                     <button className="action-btn btn-delete" onClick={handleAdminDelete}>
                       <IconTrash size={14} /> Excluir Clube
                     </button>
@@ -632,6 +677,7 @@ export function PostDetail() {
                 </div>
             )}
 
+            {/* Painel de edição — posts normais */}
             {canManagePost && isEditing && (
                 <div className="admin-edit-panel">
                   <h3 className="admin-edit-panel__title">Editar Post</h3>
@@ -694,6 +740,50 @@ export function PostDetail() {
                       {isSaving ? 'Salvando...' : 'Salvar Alterações'}
                     </button>
                     <button className="reply-cancel-btn" onClick={() => setIsEditing(false)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+            )}
+
+            {/* Painel de edição — BookClub */}
+            {canManageBookClub && isEditingBookClub && (
+                <div className="admin-edit-panel">
+                  <h3 className="admin-edit-panel__title">Editar Clube de Leitura</h3>
+                  <div className="admin-edit-grid">
+                    <div className="admin-edit-field">
+                      <label>Nome do Livro</label>
+                      <input value={bookClubEditForm.bookName} onChange={e => setBookClubEditForm(f => ({ ...f, bookName: e.target.value }))} />
+                    </div>
+                    <div className="admin-edit-field">
+                      <label>Autor do Livro</label>
+                      <input value={bookClubEditForm.bookAuthor} onChange={e => setBookClubEditForm(f => ({ ...f, bookAuthor: e.target.value }))} />
+                    </div>
+                    <div className="admin-edit-field">
+                      <label>Data do Encontro</label>
+                      <input type="datetime-local" value={bookClubEditForm.date} onChange={e => setBookClubEditForm(f => ({ ...f, date: e.target.value }))} />
+                    </div>
+                    <div className="admin-edit-field">
+                      <label>Local</label>
+                      <input value={bookClubEditForm.location} onChange={e => setBookClubEditForm(f => ({ ...f, location: e.target.value }))} />
+                    </div>
+                    <div className="admin-edit-field admin-edit-field--full">
+                      <label>URL da Capa do Livro</label>
+                      <input value={bookClubEditForm.bookCoverUrl} onChange={e => setBookClubEditForm(f => ({ ...f, bookCoverUrl: e.target.value }))} />
+                      {bookClubEditForm.bookCoverUrl && (
+                          <img src={bookClubEditForm.bookCoverUrl} alt="Capa" style={{ marginTop: 8, height: 120, width: 80, objectFit: 'cover', borderRadius: 6 }} onError={e => e.target.style.display = 'none'} />
+                      )}
+                    </div>
+                    <div className="admin-edit-field admin-edit-field--full">
+                      <label>Sinopse</label>
+                      <textarea rows={5} value={bookClubEditForm.bookSynopses} onChange={e => setBookClubEditForm(f => ({ ...f, bookSynopses: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="admin-edit-panel__footer">
+                    <button className="reply-submit-btn" onClick={handleBookClubSave} disabled={isSaving}>
+                      {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                    </button>
+                    <button className="reply-cancel-btn" onClick={() => setIsEditingBookClub(false)}>
                       Cancelar
                     </button>
                   </div>
