@@ -161,3 +161,15 @@
     right: 4px;
   }
 }
+
+.hero-logo {
+  max-width: 150px; 
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  .hero-logo {
+    max-width: 90px; /* Menor em telas mobile */
+    margin-bottom: 10px;
+  }
+}

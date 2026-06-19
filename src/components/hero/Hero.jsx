@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Hero.css';
+// Importando a logo da escola
+import logoEscola from '../../assets/logos/escola.png'; 
 
 export function Hero() {
     const [query, setQuery] = useState('');
@@ -18,6 +20,9 @@ export function Hero() {
 
     return (
         <section className="hero">
+            {/* Logo adicionada aqui */}
+            <img src={logoEscola} alt="Logo Escola" className="hero-logo" />
+            
             <h2 className="school-name">EREM Abílio Monteiro</h2>
             <h1>BIBLIOTECA VIVA</h1>
             <p className="subtitle">A biblioteca tá on!</p>
