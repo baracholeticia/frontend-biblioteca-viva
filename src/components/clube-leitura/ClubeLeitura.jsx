@@ -5,7 +5,8 @@ import {
     subscribeToBookClub,
     unsubscribeFromBookClub,
     getBookClubReviews,
-    createBookClubReview
+    createBookClubReview,
+    getBookClubParticipants
 } from '../../services/bookclubService';
 import { isLoggedIn } from '../../services/authService';
 import { IconBookmark, IconCalendar, IconMapPin, IconCheck, IconUser, IconStar, IconMessage } from '../icons';
@@ -32,8 +33,30 @@ export function ClubeLeitura() {
                 setNextMeeting(data);
 
                 if (data && data.id) {
+                    // Busca as avaliações e dados complementares normalmente
                     const reviewsData = await getBookClubReviews(data.id);
                     setReviews(reviewsData.content || []);
+
+                    if (isLoggedIn()) {
+                        try {
+                            const parts = await getBookClubParticipants(data.id);
+
+                            const usuarioLogado = localStorage.getItem('userName') || localStorage.getItem('username') || localStorage.getItem('userEmail');
+
+                            if (usuarioLogado && parts && (parts.students || Array.isArray(parts))) {
+                                const listaInscritos = Array.isArray(parts) ? parts : (parts.students || []);
+                                const cleanUser = usuarioLogado.toLowerCase().trim();
+
+                                const jaInscrito = listaInscritos.some(student =>
+                                    student && student.toLowerCase().trim() === cleanUser
+                                );
+
+                                setConfirmado(jaInscrito);
+                            }
+                        } catch (errParticipants) {
+                            console.error("Erro ao validar lista de participantes iniciais:", errParticipants);
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Erro ao buscar próximo clube do livro:", error);
@@ -57,15 +80,23 @@ export function ClubeLeitura() {
             if (confirmado) {
                 await unsubscribeFromBookClub(nextMeeting.id);
                 setConfirmado(false);
-                setNextMeeting(prev => ({ ...prev, participantsCount: prev.participantsCount - 1 }));
+                setNextMeeting(prev => ({ ...prev, participantsCount: Math.max(0, prev.participantsCount - 1) }));
+                setMensagem('');
             } else {
                 await subscribeToBookClub(nextMeeting.id);
                 setConfirmado(true);
                 setNextMeeting(prev => ({ ...prev, participantsCount: prev.participantsCount + 1 }));
+                setMensagem('');
             }
         } catch (error) {
-            console.error("Erro ao confirmar presença:", error);
-            setMensagem('Erro ao processar sua inscrição. Tente novamente.');
+            if (error.response && error.response.status === 409) {
+                setConfirmado(true); // Se der conflito é porque você JÁ está inscrito, então força o botão a ficar verde
+                setMensagem('Sua presença já está confirmada.');
+                setTimeout(() => setMensagem(''), 3000); // Some com o aviso após 3 segundos
+            } else {
+                console.error("Erro ao confirmar presença:", error);
+                setMensagem('Erro ao processar sua inscrição. Tente novamente.');
+            }
         }
     };
 

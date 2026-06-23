@@ -52,3 +52,8 @@ export async function createBookClubReview(bookClubId, data) {
     const response = await api.post(`/bookclub/${bookClubId}/reviews`, data);
     return response.data;
 }
+
+export async function getBookClubParticipants(bookClubId) {
+    const response = await api.get(`/bookclub/${bookClubId}/participants`);
+    return response.data;
+}

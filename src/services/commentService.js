@@ -51,7 +51,7 @@ function loadLocalReplies(workId) {
             return {};
         }
     } catch (error) { 
-        return {}; 
+        return {error};
     }
 }
 

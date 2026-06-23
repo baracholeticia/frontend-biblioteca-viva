@@ -4,7 +4,7 @@ import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
 import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
-import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub } from '../../services/bookclubService';
+import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub, getBookClubParticipants } from '../../services/bookClubService';
 import { isLoggedIn } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
 import { IconHeart, IconMessage, IconBookmark, IconPencil, IconTrash } from '../../components/icons';
@@ -28,9 +28,9 @@ const getYouTubeId = (url) => {
   if (!url) return null;
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
   if (match) {
-      return match[1];
+    return match[1];
   } else {
-      return null;
+    return null;
   }
 };
 
@@ -46,11 +46,11 @@ function getIsAdmin() {
     if (!token) return false;
     const payload = JSON.parse(atob(token.split('.')[1]));
     const role = payload.role || payload.roles || '';
-    
+
     if (role.includes('ADMIN') || role === 'ROLE_ADMIN') {
-        return true;
+      return true;
     } else {
-        return false;
+      return false;
     }
   } catch { return false; }
 }
@@ -61,11 +61,11 @@ function getIsCurador() {
     if (!token) return false;
     const payload = JSON.parse(atob(token.split('.')[1]));
     const role = payload.role || payload.roles || '';
-    
+
     if (role.includes('CURADOR') || role === 'ROLE_CURADOR') {
-        return true;
+      return true;
     } else {
-        return false;
+      return false;
     }
   } catch { return false; }
 }
@@ -77,13 +77,13 @@ function getCurrentUserName() {
     const token = localStorage.getItem('token');
     if (!token) return null;
     const payload = JSON.parse(atob(token.split('.')[1]));
-    
+
     if (payload.name) {
-        return payload.name;
+      return payload.name;
     } else if (payload.username) {
-        return payload.username;
+      return payload.username;
     } else {
-        return null;
+      return null;
     }
   } catch { return null; }
 }
@@ -93,48 +93,48 @@ const initialEditForm = { title: '', author: '', description: '', content: '', u
 function convertToIsoDuration(t) {
   if (!t) return '';
   if (t.startsWith('PT')) return t;
-  
-  if (t.includes(':')) { 
-      const [m, s] = t.split(':'); 
-      return `PT${parseInt(m||0)}M${parseInt(s||0)}S`; 
+
+  if (t.includes(':')) {
+    const [m, s] = t.split(':');
+    return `PT${parseInt(m||0)}M${parseInt(s||0)}S`;
   } else {
-      return `PT${parseInt(t||0)}M`;
+    return `PT${parseInt(t||0)}M`;
   }
 }
 
 const getSavedKey = () => {
-    let email = localStorage.getItem('userEmail');
-    if (!email) {
-        email = 'guest';
-    }
-    return `savedPosts_${email}`;
+  let email = localStorage.getItem('userEmail');
+  if (!email) {
+    email = 'guest';
+  }
+  return `savedPosts_${email}`;
 };
 
 function getSavedIds() {
   const stored = localStorage.getItem(getSavedKey());
   if (stored) {
-      return JSON.parse(stored);
+    return JSON.parse(stored);
   } else {
-      return [];
+    return [];
   }
 }
 
 function toggleSaved(postId) {
   const saved = getSavedIds();
   let updated;
-  
+
   if (saved.includes(postId)) {
-      updated = saved.filter((i) => i !== postId);
+    updated = saved.filter((i) => i !== postId);
   } else {
-      updated = [...saved, postId];
+    updated = [...saved, postId];
   }
-  
+
   localStorage.setItem(getSavedKey(), JSON.stringify(updated));
-  
+
   if (updated.includes(postId)) {
-      return true;
+    return true;
   } else {
-      return false;
+    return false;
   }
 }
 
@@ -179,9 +179,12 @@ export function PostDetail() {
   const [editingCommentText, setEditingCommentText] = useState('');
   const [isSavingComment, setIsSavingComment] = useState(false);
 
+  const [participants, setParticipants] = useState([]);
+  const [activeTab, setActiveTab] = useState('reviews');
+
   let isBookClub = false;
   if (categoria === 'clube-leitura') {
-      isBookClub = true;
+    isBookClub = true;
   }
 
   const isOrganizerOfThisClub = useMemo(() => {
@@ -216,61 +219,80 @@ export function PostDetail() {
           setPost({
             ...bc,
             title: bc.bookName,
-            author: bc.bookAuthor,
+            author: bc.organizerName || 'Organizador',
+            bookAuthor: bc.bookAuthor,
             description: bc.bookSynopses,
             url: bc.bookCoverUrl,
             type: 'BookClub',
             publicationDate: bc.date
           });
-          
+
           if (revs.content) {
-              setComments(revs.content);
+            setComments(revs.content);
           } else {
-              setComments([]);
+            setComments([]);
           }
-          
+
           if (bc.averageRating) {
-              setLikes(bc.averageRating);
+            setLikes(bc.averageRating);
           } else {
-              setLikes(0);
+            setLikes(0);
+          }
+
+          if (getIsAdmin() || getIsCurador()) {
+            try {
+              const parts = await getBookClubParticipants(id);
+
+              if (parts && parts.students && Array.isArray(parts.students)) {
+                setParticipants(parts.students);
+              } else if (Array.isArray(parts)) {
+                setParticipants(parts);
+              } else if (parts && parts.content) {
+                setParticipants(parts.content);
+              } else {
+                setParticipants([]);
+              }
+            } catch{
+              setParticipants([]);
+            }
           }
         } else {
           let commentsData;
           try {
-              commentsData = await getComments(id);
-          } catch (err) {
-              commentsData = [];
+            commentsData = await getComments(id);
+          } catch {
+            commentsData = [];
           }
-          
+
           const postData = await getWorkById(id);
-          
+
           setPost(postData);
           setComments(commentsData || []);
 
           const likesMap = {};
           (commentsData || []).forEach(c => {
-              let commentLikesCount = 0;
-              if (c.likes) {
-                  commentLikesCount = c.likes;
-              }
-              likesMap[c.id] = { count: commentLikesCount, liked: false };
+            let commentLikesCount = 0;
+            if (c.likes) {
+              commentLikesCount = c.likes;
+            }
+            likesMap[c.id] = { count: commentLikesCount, liked: false };
           });
           setCommentLikes(likesMap);
 
           if (postData.likeCount) {
-              setLikes(postData.likeCount);
+            setLikes(postData.likeCount);
           } else {
-              setLikes(0);
+            setLikes(0);
           }
-          
+
           setEditForm({ ...initialEditForm, ...postData });
 
           if (isLoggedIn()) {
             let likedList = [];
             try {
-                likedList = await getLikedWorks();
-            } catch (err) {
-                likedList = [];
+              likedList = await getLikedWorks();
+            } catch{
+              likedList = [];
             }
             setHasLiked(likedList.includes(id));
           }
@@ -281,13 +303,13 @@ export function PostDetail() {
                 commentsData.map(async (c) => {
                   let r = null;
                   try {
-                      r = await getReplies(id, c.id);
-                  } catch (err) {
-                      r = null;
+                    r = await getReplies(id, c.id);
+                  } catch{
+                    r = null;
                   }
-                  
+
                   if (r) {
-                      repliesMap[c.id] = r;
+                    repliesMap[c.id] = r;
                   }
                 })
             );
@@ -331,7 +353,7 @@ export function PostDetail() {
         description: editForm.description,
         publicationDate: post.publicationDate,
       };
-      
+
       if (editForm.content !== undefined) payload.content = editForm.content;
       if (editForm.url !== undefined) payload.url = editForm.url;
       if (editForm.genre !== undefined) payload.genre = editForm.genre;
@@ -340,9 +362,9 @@ export function PostDetail() {
       if (editForm.theme !== undefined) payload.theme = editForm.theme;
       if (editForm.themeDescription !== undefined) payload.themeDescription = editForm.themeDescription;
       if (editForm.feedback !== undefined) payload.feedback = editForm.feedback;
-      
+
       if (['Multimedia', 'LibraLiterature'].includes(post.type) && editForm.duration) {
-          payload.duration = convertToIsoDuration(editForm.duration);
+        payload.duration = convertToIsoDuration(editForm.duration);
       }
 
       await updateWork(endpointType, id, payload);
@@ -396,11 +418,11 @@ export function PostDetail() {
     }
     const nowSaved = toggleSaved(id);
     setIsSaved(nowSaved);
-    
+
     if (nowSaved) {
-        showToast('Salvo nos favoritos!', 'success');
+      showToast('Salvo nos favoritos!', 'success');
     } else {
-        showToast('Removido dos favoritos.', 'success');
+      showToast('Removido dos favoritos.', 'success');
     }
   };
 
@@ -439,7 +461,7 @@ export function PostDetail() {
       return;
     }
     if (newComment.trim() === '') return;
-    
+
     setIsCommenting(true);
     try {
       if (isBookClub) {
@@ -464,17 +486,17 @@ export function PostDetail() {
   const canReply = useMemo(() => {
     if (!post || !isLoggedIn()) return false;
     if (isAdmin || isCurador) return true;
-    
+
     if (post.author) {
       const authorLower = post.author.toLowerCase();
       const userName = (localStorage.getItem('userName') || '').toLowerCase();
       const userEmail = localStorage.getItem('userEmail') || '';
       const emailPrefix = userEmail.split('@')[0].toLowerCase();
-      
+
       if (userName && (authorLower.includes(userName) || userName.includes(authorLower))) {
-          return true;
+        return true;
       } else if (emailPrefix && authorLower.includes(emailPrefix)) {
-          return true;
+        return true;
       }
     }
     return false;
@@ -483,7 +505,7 @@ export function PostDetail() {
   const totalInteractions = useMemo(() => {
     let repliesCount = 0;
     Object.values(replies).forEach(r => {
-        if (r) repliesCount += 1;
+      if (r) repliesCount += 1;
     });
     return comments.length + repliesCount;
   }, [comments, replies]);
@@ -494,11 +516,11 @@ export function PostDetail() {
       navigate('/login');
       return;
     }
-    
+
     if (replyingTo === commentId) {
-        setReplyingTo(null);
+      setReplyingTo(null);
     } else {
-        setReplyingTo(commentId);
+      setReplyingTo(commentId);
     }
     setReplyText('');
   };
@@ -535,11 +557,11 @@ export function PostDetail() {
     try {
       await updateComment(id, commentId, editingCommentText.trim());
       setComments(prev => prev.map(c => {
-          if (c.id === commentId) {
-              return { ...c, content: editingCommentText.trim() };
-          } else {
-              return c;
-          }
+        if (c.id === commentId) {
+          return { ...c, content: editingCommentText.trim() };
+        } else {
+          return c;
+        }
       }));
       setEditingCommentId(null);
       setEditingCommentText('');
@@ -557,13 +579,13 @@ export function PostDetail() {
     try {
       await deleteComment(id, commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
-      
-      setReplies(prev => { 
-          const next = { ...prev }; 
-          delete next[commentId]; 
-          return next; 
+
+      setReplies(prev => {
+        const next = { ...prev };
+        delete next[commentId];
+        return next;
       });
-      
+
       showToast('Comentário excluído.', 'success');
     } catch (err) {
       console.error('Erro ao excluir comentário:', err);
@@ -577,12 +599,12 @@ export function PostDetail() {
       navigate('/login');
       return;
     }
-    
+
     let current = commentLikes[commentId];
     if (!current) {
-        current = { count: 0, liked: false };
+      current = { count: 0, liked: false };
     }
-    
+
     try {
       if (current.liked) {
         await unlikeComment(id, commentId);
@@ -613,9 +635,9 @@ export function PostDetail() {
 
   let translatedCategory = post.type;
   if (categoryTranslations[post.type]) {
-      translatedCategory = categoryTranslations[post.type];
+    translatedCategory = categoryTranslations[post.type];
   }
-  
+
   const youtubeId = getYouTubeId(post.url);
 
   const canManagePost = (isAdmin || isCurador) && !isBookClub;
@@ -793,7 +815,18 @@ export function PostDetail() {
             <div className="post-header">
               <span className="post-category">{translatedCategory}</span>
               <h1 className="post-title">{post.title}</h1>
-              <span className="post-meta">Por <Link to={`/autor/${encodeURIComponent(post.author)}`} className="post-author-link">{post.author}</Link> em {formatDate(post.publicationDate)}</span>
+
+              <span className="post-meta">
+                {isBookClub ? 'Agendado por ' : 'Por '}
+
+                <Link to={`/autor/${encodeURIComponent(post.author)}`} className="post-author-link">
+      {post.author}
+    </Link>
+
+                {isBookClub && post.bookAuthor && ` | Livro por ${post.bookAuthor}`}
+
+                {` em ${formatDate(post.publicationDate)}`}
+  </span>
             </div>
 
             {youtubeId ? (
@@ -830,29 +863,160 @@ export function PostDetail() {
           </article>
 
           <section className="comments-section">
-            <h2>{isBookClub ? "Resenhas dos Leitores" : "Comentários"}</h2>
-            {comments.length > 0 ? (
-                <div className="comment-list">
-                  {comments.map((comment) => (
-                      <div key={comment.id} className="comment-item">
-                        <div className="comment-author">
-                          <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">{comment.authorName}</Link>
-                          {isBookClub && <span style={{marginLeft: 8, color: '#f5a623'}}>★ {comment.rating}</span>}
-                          <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
+            {isBookClub && (isAdmin || isCurador) ? (
+                <div className="bookclub-tabs" style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #e2e8f0' }}>
+                  <button
+                      onClick={() => setActiveTab('reviews')}
+                      style={{
+                        padding: '10px 22px',
+                        fontFamily: 'Poppins, system-ui, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '1rem',
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        color: activeTab === 'reviews' ? '#0a2a57' : '#6b778c',
+                        borderBottom: activeTab === 'reviews' ? '3px solid #0a2a57' : '3px solid transparent',
+                        marginBottom: '-2px',
+                        transition: 'color 0.2s',
+                      }}
+                  >
+                    Resenhas dos Leitores
+                  </button>
+                  <button
+                      onClick={() => setActiveTab('participants')}
+                      style={{
+                        padding: '10px 22px',
+                        fontFamily: 'Poppins, system-ui, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '1rem',
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        color: activeTab === 'participants' ? '#0a2a57' : '#6b778c',
+                        borderBottom: activeTab === 'participants' ? '3px solid #0a2a57' : '3px solid transparent',
+                        marginBottom: '-2px',
+                        transition: 'color 0.2s',
+                      }}
+                  >
+                    Presença Confirmada
+                    {participants.length > 0 && (
+                        <span style={{
+                          marginLeft: 8,
+                          background: '#0a2a57',
+                          color: '#fff',
+                          borderRadius: '999px',
+                          padding: '1px 9px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                        }}>
+                      {participants.length}
+                    </span>
+                    )}
+                  </button>
+                </div>
+            ) : (
+                <h2>{isBookClub ? "Resenhas dos Leitores" : "Comentários"}</h2>
+            )}
+
+            {isBookClub && (isAdmin || isCurador) && activeTab === 'participants' ? (
+                <div className="participants-list" style={{ padding: '16px 8px' }}>
+                  {participants.length === 0 ? (
+                      <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif', padding: '12px' }}>
+                        Nenhuma presença confirmada ainda.
+                      </p>
+                  ) : (
+                      <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                      }}>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '60px 1fr',
+                          padding: '12px 16px',
+                          backgroundColor: '#f8fafc',
+                          borderBottom: '2px solid #e2e8f0',
+                          color: '#6b778c',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          fontFamily: 'Poppins, system-ui, sans-serif'
+                        }}>
+                          <span>#</span>
+                          <span>Aluno</span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          {participants.map((p, idx) => {
+                            const username = typeof p === 'string' ? p : (p.name || p.userName || '—');
+                            const formattedName = username.charAt(0).toUpperCase() + username.slice(1);
+
+                            return (
+                                <div
+                                    key={idx}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: '60px 1fr',
+                                      padding: '14px 16px',
+                                      borderBottom: idx === participants.length - 1 ? 'none' : '1px solid #f1f5f9',
+                                      alignItems: 'center',
+                                      backgroundColor: '#ffffff',
+                                      fontFamily: 'Poppins, system-ui, sans-serif',
+                                      transition: 'background-color 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                                >
+                                  <span style={{
+                                    color: '#6b778c',
+                                    fontSize: '14px',
+                                    fontWeight: '400'
+                                  }}>
+                          {idx + 1}
+                        </span>
+
+                                  {/* Nome do Participante */}
+                                  <span style={{
+                                    color: '#0a2a57',
+                                    fontSize: '14px',
+                                    fontWeight: '600'
+                                  }}>
+                          {formattedName}
+                        </span>
+                                </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                  )}
+                </div>
+            ) :(
+                <>{comments.length > 0 ? (
+                    <div className="comment-list">
+                      {comments.map((comment) => (
+                          <div key={comment.id} className="comment-item">
+                            <div className="comment-author">
+                              <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">{comment.authorName}</Link>
+                              {isBookClub && <span style={{marginLeft: 8, color: '#f5a623'}}>★ {comment.rating}</span>}
+                              <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
                             {formatDate(comment.createdAt)}
                           </span>
-                          {(isAdmin || isCurador) && !isBookClub && (
-                              <span className="comment-admin-actions">
+                              {(isAdmin || isCurador) && !isBookClub && (
+                                  <span className="comment-admin-actions">
                               <button
                                   className="action-btn btn-edit"
                                   title="Editar comentário"
                                   onClick={() => {
-                                      if (editingCommentId === comment.id) {
-                                          setEditingCommentId(null);
-                                          setEditingCommentText('');
-                                      } else {
-                                          handleEditComment(comment);
-                                      }
+                                    if (editingCommentId === comment.id) {
+                                      setEditingCommentId(null);
+                                      setEditingCommentText('');
+                                    } else {
+                                      handleEditComment(comment);
+                                    }
                                   }}
                               >
                                 <IconPencil size={13} />
@@ -867,11 +1031,11 @@ export function PostDetail() {
                                 Excluir
                               </button>
                             </span>
-                          )}
-                        </div>
+                              )}
+                            </div>
 
-                        {editingCommentId === comment.id ? (
-                            <div className="comment-edit-form">
+                            {editingCommentId === comment.id ? (
+                                <div className="comment-edit-form">
                             <textarea
                                 className="comment-edit-textarea"
                                 value={editingCommentText}
@@ -879,43 +1043,43 @@ export function PostDetail() {
                                 disabled={isSavingComment}
                                 rows={3}
                             />
-                              <div className="comment-edit-actions">
-                                <button
-                                    className="reply-cancel-btn"
-                                    onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
-                                    disabled={isSavingComment}
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                    className="reply-submit-btn"
-                                    onClick={() => handleSaveEditComment(comment.id)}
-                                    disabled={isSavingComment || !editingCommentText.trim()}
-                                >
-                                  {isSavingComment ? 'Salvando...' : 'Salvar'}
-                                </button>
-                              </div>
-                            </div>
-                        ) : (
-                            <>
-                              <div className="comment-text">{comment.content}</div>
-                              {!isBookClub && (
-                                  <button
-                                      className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
-                                      onClick={() => handleLikeComment(comment.id)}
-                                      style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
-                                  >
-                                    <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
-                                    <span>{commentLikes[comment.id]?.count || 0}</span>
-                                  </button>
-                              )}
-                            </>
-                        )}
+                                  <div className="comment-edit-actions">
+                                    <button
+                                        className="reply-cancel-btn"
+                                        onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                        disabled={isSavingComment}
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                        className="reply-submit-btn"
+                                        onClick={() => handleSaveEditComment(comment.id)}
+                                        disabled={isSavingComment || !editingCommentText.trim()}
+                                    >
+                                      {isSavingComment ? 'Salvando...' : 'Salvar'}
+                                    </button>
+                                  </div>
+                                </div>
+                            ) : (
+                                <>
+                                  <div className="comment-text">{comment.content}</div>
+                                  {!isBookClub && (
+                                      <button
+                                          className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
+                                          onClick={() => handleLikeComment(comment.id)}
+                                          style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
+                                      >
+                                        <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
+                                        <span>{commentLikes[comment.id]?.count || 0}</span>
+                                      </button>
+                                  )}
+                                </>
+                            )}
 
-                        {/* Renderizando a Resposta Única */}
-                        {replies[comment.id] && !Array.isArray(replies[comment.id]) && (
-                            <div className="reply-list">
-                                <div className="reply-item">
+                            {/* Renderizando a Resposta Única */}
+                            {replies[comment.id] && !Array.isArray(replies[comment.id]) && (
+                                <div className="reply-list">
+                                  <div className="reply-item">
                                     <div className="reply-author">
                                         <span className="reply-badge reply-badge--admin" title="Administrador ou Autor">
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -923,19 +1087,19 @@ export function PostDetail() {
                                                 <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
                                                 <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                                             </svg>
-                                            {replies[comment.id].authorName || 'Resposta'}
+                                          {replies[comment.id].authorName || 'Resposta'}
                                         </span>
-                                        <span className="reply-date">{formatDate(replies[comment.id].createdAt)}</span>
+                                      <span className="reply-date">{formatDate(replies[comment.id].createdAt)}</span>
                                     </div>
                                     <div className="reply-text">{replies[comment.id].content}</div>
+                                  </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {!isBookClub && canReply && (
-                            <div className="reply-action-area">
-                              {replyingTo === comment.id ? (
-                                  <div className="reply-form">
+                            {!isBookClub && canReply && (
+                                <div className="reply-action-area">
+                                  {replyingTo === comment.id ? (
+                                      <div className="reply-form">
                                     <textarea
                                         className="reply-textarea"
                                         placeholder="Escreva sua resposta..."
@@ -944,47 +1108,49 @@ export function PostDetail() {
                                         disabled={isSendingReply}
                                         rows={3}
                                     />
-                                    <div className="reply-form-actions">
+                                        <div className="reply-form-actions">
+                                          <button
+                                              className="reply-cancel-btn"
+                                              onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                              disabled={isSendingReply}
+                                          >
+                                            Cancelar
+                                          </button>
+                                          <button
+                                              className="reply-submit-btn"
+                                              onClick={() => handleSendReply(comment.id)}
+                                              disabled={isSendingReply || !replyText.trim()}
+                                          >
+                                            {isSendingReply ? 'Enviando...' : 'Responder'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                  ) : (
                                       <button
-                                          className="reply-cancel-btn"
-                                          onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                          disabled={isSendingReply}
+                                          className="reply-btn"
+                                          onClick={() => handleOpenReply(comment.id)}
                                       >
-                                        Cancelar
+                                        ↩ Responder
                                       </button>
-                                      <button
-                                          className="reply-submit-btn"
-                                          onClick={() => handleSendReply(comment.id)}
-                                          disabled={isSendingReply || !replyText.trim()}
-                                      >
-                                        {isSendingReply ? 'Enviando...' : 'Responder'}
-                                      </button>
-                                    </div>
-                                  </div>
-                              ) : (
-                                  <button
-                                      className="reply-btn"
-                                      onClick={() => handleOpenReply(comment.id)}
-                                  >
-                                    ↩ Responder
-                                  </button>
-                              )}
-                            </div>
-                        )}
-                      </div>
-                  ))}
-                </div>
-            ) : (
-                <p style={{ color: '#6b778c', marginBottom: 24, fontFamily: 'Poppins, system-ui, sans-serif' }}>Seja o primeiro a interagir!</p>
-            )}
+                                  )}
+                                </div>
+                            )}
+                          </div>
+                      ))}
+                    </div>
+                ) : (
+                    <p style={{ color: '#6b778c', marginBottom: 24, fontFamily: 'Poppins, system-ui, sans-serif' }}>Seja o primeiro a interagir!</p>
+                )}
 
-            {!isBookClub && (
-                <form className="comment-form" onSubmit={handleAddComment}>
-                  <textarea placeholder="Escreva um comentário..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isCommenting} />
-                  <button type="submit" className="comment-submit-btn" disabled={isCommenting}>
-                    {isCommenting ? 'Enviando...' : 'Enviar Comentário'}
-                  </button>
-                </form>
+                  {!isBookClub && (
+                      <form className="comment-form" onSubmit={handleAddComment}>
+                        <textarea placeholder="Escreva um comentário..." value={newComment} onChange={(e) => setNewComment(e.target.value)} disabled={isCommenting} />
+                        <button type="submit" className="comment-submit-btn" disabled={isCommenting}>
+                          {isCommenting ? 'Enviando...' : 'Enviar Comentário'}
+                        </button>
+                      </form>
+                  )}
+                </>
             )}
           </section>
         </section>
