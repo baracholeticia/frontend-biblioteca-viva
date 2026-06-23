@@ -514,5 +514,5 @@ const labelStyle = { fontSize: 13, fontWeight: 600, color: '#42526e' };
 const inputStyle = {
     padding: '10px 14px', border: '1px solid #dfe1e6', borderRadius: 8,
     fontSize: 14, outline: 'none', fontFamily: 'inherit', color: '#0a2a57',
-    width: '100%', boxSizing: 'border-box'
+    width: '100%', boxSizing: 'border-box', overflowWrap: 'break-word'
 };
