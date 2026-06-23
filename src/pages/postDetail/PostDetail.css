@@ -2,6 +2,8 @@
   flex: 1;
   background-color: #f6f7f9;
   padding: 60px 20px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .post-content {
@@ -12,6 +14,7 @@
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   color: #0a2a57;
+  box-sizing: border-box;
 }
 
 .post-header {
@@ -53,12 +56,17 @@
   line-height: 1.2;
   font-family: 'Poppins', system-ui, sans-serif;
   color: #0a2a57;
+  /* Evita estouro de títulos contínuos */
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .post-meta {
   color: #6b778c;
   font-size: 14px;
   font-family: 'Poppins', system-ui, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .post-author-link {
@@ -79,6 +87,8 @@
   color: #253858;
   white-space: pre-wrap;
   font-family: 'Poppins', system-ui, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .post-interactions {
@@ -154,6 +164,7 @@
   padding: 40px;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .comments-section h2 {
@@ -174,6 +185,8 @@
   background-color: #f6f7f9;
   padding: 16px;
   border-radius: 8px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .comment-author {
@@ -189,6 +202,8 @@
   font-size: 15px;
   line-height: 1.5;
   font-family: 'Poppins', system-ui, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .comment-form {
@@ -243,14 +258,12 @@
   background-color: #f0f2f5;
 }
 
-/* =========================================
-   RESPONSIVIDADE MOBILE DO POST
-========================================= */
+
 @media (max-width: 640px) {
   .post-content, .comments-section { padding: 28px 20px; }
   .post-title { font-size: 24px; }
 
-  /* Esconde os textos dos botões no mobile e aproxima os ícones */
+
   .interact-text {
     display: none;
   }
@@ -260,9 +273,7 @@
     gap: 12px;
   }
 }
-/* ========================================================
-   BARRA E PAINEL DE ADMIN NO POST DETAIL
-======================================================== */
+
 .admin-post-toolbar {
   display: flex;
   align-items: center;
@@ -296,6 +307,7 @@
   border-radius: 14px;
   padding: 24px;
   margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .admin-edit-panel__title {
@@ -359,9 +371,7 @@
   margin-top: 20px;
 }
 
-/* ========================================================
-   REPLIES (RESPOSTAS DO AUTOR / ADMIN)
-======================================================== */
+
 .reply-list {
   margin-top: 12px;
   display: flex;
@@ -376,6 +386,8 @@
   border: 1px solid #fde8c8;
   border-radius: 8px;
   padding: 12px 14px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .reply-author {
@@ -431,6 +443,8 @@
   color: #42526e;
   line-height: 1.55;
   font-family: 'Poppins', system-ui, sans-serif;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .reply-action-area {
@@ -530,9 +544,7 @@
   cursor: not-allowed;
 }
 
-/* ========================================================
-   ADMIN: EDITAR / EXCLUIR COMENTÁRIO
-======================================================== */
+
 .comment-admin-actions {
   display: inline-flex;
   align-items: center;
@@ -540,7 +552,6 @@
   margin-left: auto;
 }
 
-/* Mesmas classes do AdminLayout.css — garante visual idêntico ao painel admin */
 .action-btn {
   padding: 6px 12px;
   border-radius: 6px;

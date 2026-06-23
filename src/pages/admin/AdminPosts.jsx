@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from './AdminLayout';
 import { getAllWorks, createWork, updateWork, deleteWork } from '../../services/workService';
 import { getAllBookClubs, createBookClub, updateBookClub, deleteBookClub } from '../../services/bookclubService';
-import { getAllUsers } from '../../services/adminService';
 import { useToast } from '../../context/ToastContext';
 import { IconPencil, IconTrash, IconSearch, IconHeart, IconMessage, IconPlus, IconEye } from '../../components/icons';
 import { Pagination } from '../../components/pagination/Pagination';
+import { getAllUsers } from '../../services/adminService';
+import { getUserByEmail } from '../../services/userService';
 import './AdminLayout.css';
 
 const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
@@ -17,9 +18,10 @@ const ChevronIcon = ({ expanded }) => (
     </svg>
 );
 
-function AuthorAutocomplete({ value, onChange, users }) {
+function AuthorAutocomplete({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value || '');
+  const [suggestions, setSuggestions] = useState([]);
   const [prevValue, setPrevValue] = useState(value);
   const wrapperRef = useRef(null);
 
@@ -36,12 +38,34 @@ function AuthorAutocomplete({ value, onChange, users }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const suggestions = inputValue.trim().length > 0
-      ? users.filter(u => {
-        const q = inputValue.toLowerCase();
-        return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
-      }).slice(0, 6)
-      : [];
+  useEffect(() => {
+    if (inputValue.trim().length < 2) {
+      const clearTimer = setTimeout(() => {
+        setSuggestions([]);
+      }, 0);
+      return () => clearTimeout(clearTimer);
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputValue.trim())) {
+          const user = await getUserByEmail(inputValue.trim());
+          setSuggestions(user ? [user] : []);
+        } else {
+          const all = await getAllUsers(null, 0, 200);
+          const filtered = all.filter(u =>
+              u.name?.toLowerCase().includes(inputValue.toLowerCase()) ||
+              u.email?.toLowerCase().includes(inputValue.toLowerCase())
+          ).slice(0, 6);
+          setSuggestions(filtered);
+        }
+      } catch {
+        setSuggestions([]);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [inputValue]);
 
   const handleInput = (e) => {
     const val = e.target.value;
@@ -51,8 +75,8 @@ function AuthorAutocomplete({ value, onChange, users }) {
   };
 
   const handleSelect = (user) => {
-    setInputValue(user.name);
-    onChange(user.name);
+    setInputValue(user.email);
+    onChange(user.email);
     setOpen(false);
   };
 
@@ -62,7 +86,7 @@ function AuthorAutocomplete({ value, onChange, users }) {
             style={inputStyle}
             value={inputValue}
             onChange={handleInput}
-            onFocus={() => suggestions.length > 0 && setOpen(true)}
+            onFocus={() => setOpen(true)}
             placeholder="Nome ou e-mail do autor..."
             autoComplete="off"
         />
@@ -165,7 +189,6 @@ async function fetchYoutubeDuration(url) {
     return null;
   }
 }
-// ──────────────────────────────────────────────────────────────────────────────
 
 function normalizeBookClub(bc) {
   return {
@@ -179,6 +202,7 @@ function normalizeBookClub(bc) {
 }
 
 export function AdminPosts() {
+  const [isProfileLinked, setIsProfileLinked] = useState(false);
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [filterCategory, setFilterCategory] = useState('');
@@ -203,7 +227,6 @@ export function AdminPosts() {
   const getViewPath = (post) =>
       post._isBookClub ? `/clube-leitura/${post.id}` : `/post/${post.id}`;
 
-  // ─── Busca works + bookclubs e mescla ─────────────────────────────────────
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -222,7 +245,6 @@ export function AdminPosts() {
       setLoading(false);
     }
   }, [showToast]);
-  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -230,7 +252,34 @@ export function AdminPosts() {
     getAllUsers().then(setUsers).catch(() => {});
   }, []);
 
-  // ─── URL change handler with YouTube auto-duration ────────────────────────
+  useEffect(() => {
+    if (!form.author) {
+      setIsProfileLinked(false);
+      return;
+    }
+
+    const verificarNoBanco = async () => {
+      try {
+        const termo = form.author.trim();
+
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(termo)) {
+          const user = await getUserByEmail(termo);
+          setIsProfileLinked(!!(user && user.id));
+        } else {
+          const achouLocal = users.some(u =>
+              u.name?.toLowerCase() === termo.toLowerCase() ||
+              u.email?.toLowerCase() === termo.toLowerCase()
+          );
+          setIsProfileLinked(achouLocal);
+        }
+      } catch {
+        setIsProfileLinked(false);
+      }
+    };
+
+    verificarNoBanco();
+  }, [form.author, users]);
+
   const handleUrlChange = (url) => {
     setForm(prev => ({ ...prev, url }));
     if (!['Multimedia', 'LibraLiterature'].includes(form.type)) return;
@@ -248,7 +297,6 @@ export function AdminPosts() {
       }
     }, 800);
   };
-  // ─────────────────────────────────────────────────────────────────────────
 
   let filtered = posts.filter(p => {
     const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -295,7 +343,6 @@ export function AdminPosts() {
 
   const startCreate = () => { setCreating(true); setEditing(null); setForm(initialForm); };
 
-  // ─── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
@@ -427,16 +474,16 @@ export function AdminPosts() {
                   </div>
                 </>)}
 
-                {/* ── Campos Works normais ── */}
                 {!isBookClub && (<>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <label style={labelStyle}>Título</label>
                     <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
                   </div>
+                  {/* Subititua este pedaço do seu JSX: */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <label style={labelStyle}>
                       Autor
-                      {form.author && users.find(u => u.name === form.author)
+                      {isProfileLinked
                           ? <span style={{ marginLeft: 8, fontSize: 11, color: '#065f46', background: '#d1fae5', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>✓ Perfil vinculado</span>
                           : form.author
                               ? <span style={{ marginLeft: 8, fontSize: 11, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>Sem perfil vinculado</span>
@@ -590,4 +637,4 @@ export function AdminPosts() {
 }
 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: '#42526e' };
-const inputStyle = { padding: '10px 14px', border: '1px solid #dfe1e6', borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit', color: '#0a2a57', width: '100%', boxSizing: 'border-box' };
+const inputStyle = { padding: '10px 14px', border: '1px solid #dfe1e6', borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit', color: '#0a2a57', width: '100%', boxSizing: 'border-box', overflowWrap: 'break-word' };
