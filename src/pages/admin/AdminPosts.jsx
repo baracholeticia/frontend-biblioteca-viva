@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from './AdminLayout';
-import { getAllWorks, createWork, updateWork, deleteWork } from '../../services/workService';
+import { getAllWorks, getWorkById, createWork, updateWork, deleteWork } from '../../services/workService';
 import { getAllBookClubs, createBookClub, updateBookClub, deleteBookClub } from '../../services/bookclubService';
 import { getAllUsers } from '../../services/adminService';
 import { useToast } from '../../context/ToastContext';
@@ -93,6 +93,80 @@ function AuthorAutocomplete({ value, onChange, users }) {
   );
 }
 
+function ArtAutocomplete({ value, onChange, arts }) {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value || '');
+  const [prevValue, setPrevValue] = useState(value);
+  const wrapperRef = useRef(null);
+
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setInputValue(value || '');
+  }
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const suggestions = arts.filter(a => {
+    const q = inputValue.toLowerCase();
+    return !q || a.title?.toLowerCase().includes(q);
+  }).slice(0, 8);
+
+  const handleInput = (e) => {
+    const val = e.target.value;
+    setInputValue(val);
+    onChange(val);
+    setOpen(true);
+  };
+
+  const handleSelect = (art) => {
+    setInputValue(art.title);
+    onChange(art.title);
+    setOpen(false);
+  };
+
+  return (
+      <div ref={wrapperRef} style={{ position: 'relative' }}>
+        <input
+            style={inputStyle}
+            value={inputValue}
+            onChange={handleInput}
+            onFocus={() => setOpen(true)}
+            placeholder="Buscar arte vinculada..."
+            autoComplete="off"
+        />
+        {open && suggestions.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+              background: 'white', border: '1px solid #dfe1e6', borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4, overflow: 'hidden'
+            }}>
+              {suggestions.map(art => (
+                  <div
+                      key={art.id}
+                      onMouseDown={() => handleSelect(art)}
+                      style={{
+                        padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f2f5',
+                        display: 'flex', flexDirection: 'column', gap: 2, transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f6f7f9'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                  >
+                    <span style={{ fontWeight: 600, fontSize: 14, color: '#0a2a57' }}>{art.title}</span>
+                    {art.author && <span style={{ fontSize: 12, color: '#6b778c' }}>{art.author}</span>}
+                  </div>
+              ))}
+            </div>
+        )}
+      </div>
+  );
+}
+
 const typeEndpoints = {
   'Essay': 'essays', 'Cordel': 'cordels', 'Tale': 'tales', 'ShortStory': 'short-stories',
   'Article': 'articles', 'Infographic': 'infographics', 'Art': 'arts',
@@ -115,9 +189,9 @@ const categoryTranslations = {
 
 const initialForm = {
   type: 'Essay', title: '', author: '', studentClass: '', description: '',
-  content: '', url: '', duration: '', genre: '', rhymeScheme: '', rate: 0,
+  content: '', url: '', duration: '', genre: '', rhymeScheme: '', artName: '',
+  poemType: '', rate: 0,
   theme: 'Geral', themeDescription: 'Tema Geral', feedback: 'Sem feedback',
-  // BookClub-specific
   bookName: '', bookAuthor: '', bookSynopses: '', bookCoverUrl: '', date: '', location: ''
 };
 
@@ -145,7 +219,6 @@ function convertFromIsoDuration(durationInfo) {
   return durationInfo;
 }
 
-// ─── YouTube helpers ───────────────────────────────────────────────────────────
 function extractYoutubeId(url) {
   const match = url.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   return match ? match[1] : null;
@@ -165,7 +238,6 @@ async function fetchYoutubeDuration(url) {
     return null;
   }
 }
-// ──────────────────────────────────────────────────────────────────────────────
 
 function normalizeBookClub(bc) {
   return {
@@ -194,6 +266,8 @@ export function AdminPosts() {
   const [perPage, setPerPage] = useState(10);
   const [fetchingDuration, setFetchingDuration] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [arts, setArts] = useState([]);
   const { showToast } = useToast();
 
   const urlDebounceRef = useRef(null);
@@ -203,7 +277,6 @@ export function AdminPosts() {
   const getViewPath = (post) =>
       post._isBookClub ? `/clube-leitura/${post.id}` : `/post/${post.id}`;
 
-  // ─── Busca works + bookclubs e mescla ─────────────────────────────────────
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -222,7 +295,6 @@ export function AdminPosts() {
       setLoading(false);
     }
   }, [showToast]);
-  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -230,7 +302,10 @@ export function AdminPosts() {
     getAllUsers().then(setUsers).catch(() => {});
   }, []);
 
-  // ─── URL change handler with YouTube auto-duration ────────────────────────
+  useEffect(() => {
+    getAllWorks('Art').then(setArts).catch(() => {});
+  }, []);
+
   const handleUrlChange = (url) => {
     setForm(prev => ({ ...prev, url }));
     if (!['Multimedia', 'LibraLiterature'].includes(form.type)) return;
@@ -248,7 +323,6 @@ export function AdminPosts() {
       }
     }, 800);
   };
-  // ─────────────────────────────────────────────────────────────────────────
 
   let filtered = posts.filter(p => {
     const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -269,11 +343,12 @@ export function AdminPosts() {
 
   const handlePageChange = (page) => setCurrentPage(page);
   const handlePerPageChange = (value) => { setPerPage(value); setCurrentPage(1); };
-
-  const startEdit = (post) => {
-    setEditing(post.id);
+  
+  const startEdit = async (post) => {
     setCreating(false);
+
     if (post._isBookClub) {
+      setEditing(post.id);
       setForm({
         ...initialForm,
         type: 'BookClub',
@@ -284,18 +359,28 @@ export function AdminPosts() {
         date: post.date ? post.date.slice(0, 16) : '',
         location: post.location || '',
       });
-    } else {
-      const postData = { ...initialForm, ...post };
-      if (['Multimedia', 'LibraLiterature'].includes(post.type)) {
-        postData.duration = convertFromIsoDuration(post.duration);
+      return;
+    }
+
+    try {
+      setLoadingEdit(true);
+      const fullPost = await getWorkById(post.id);
+      setEditing(fullPost.id);
+      const postData = { ...initialForm, ...fullPost };
+      if (['Multimedia', 'LibraLiterature'].includes(fullPost.type)) {
+        postData.duration = convertFromIsoDuration(fullPost.duration);
       }
       setForm(postData);
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao carregar dados do post.", "error");
+    } finally {
+      setLoadingEdit(false);
     }
   };
 
   const startCreate = () => { setCreating(true); setEditing(null); setForm(initialForm); };
 
-  // ─── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
@@ -325,14 +410,39 @@ export function AdminPosts() {
       };
       let payload = {};
       switch (form.type) {
-        case 'Essay': payload = { ...basePayload, content: form.content, rate: Number(form.rate), theme: form.theme, themeDescription: form.themeDescription, feedback: form.feedback }; break;
-        case 'Cordel': payload = { ...basePayload, content: form.content, rhymeScheme: form.rhymeScheme }; break;
-        case 'Tale': payload = { ...basePayload, content: form.content, genre: form.genre }; break;
-        case 'ShortStory': case 'Article': payload = { ...basePayload, content: form.content }; break;
-        case 'Poem': payload = { ...basePayload, content: form.content }; break;
-        case 'Multimedia': case 'LibraLiterature': payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) }; break;
-        case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break;
-        default: payload = { ...basePayload };
+        case 'Essay':
+          payload = {
+            ...basePayload,
+            content: form.content,
+            rate: Number(form.rate),
+            theme: form.theme,
+            themeDescription: form.themeDescription,
+            feedback: form.feedback,
+          };
+          break;
+        case 'Cordel':
+          payload = { ...basePayload, content: form.content, rhymeScheme: form.rhymeScheme, artName: form.artName };
+          break;
+        case 'Tale':
+          payload = { ...basePayload, content: form.content, genre: form.genre };
+          break;
+        case 'Poem':
+          payload = { ...basePayload, content: form.content, rhymeScheme: form.rhymeScheme, poemType: form.poemType };
+          break;
+        case 'ShortStory':
+        case 'Article':
+          payload = { ...basePayload, content: form.content };
+          break;
+        case 'Multimedia':
+        case 'LibraLiterature':
+          payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) };
+          break;
+        case 'Art':
+        case 'Infographic':
+          payload = { ...basePayload, url: form.url };
+          break;
+        default:
+          payload = { ...basePayload };
       }
       const endpointType = typeEndpoints[form.type];
       if (creating) { await createWork(endpointType, payload); showToast("Criado!", "success"); }
@@ -349,7 +459,6 @@ export function AdminPosts() {
       setSaving(false);
     }
   };
-  // ──────────────────────────────────────────────────────────────────────────
 
   const handleDelete = async (post) => {
     if (window.confirm('Excluir este item?')) {
@@ -383,6 +492,7 @@ export function AdminPosts() {
             <div className="admin-card" style={{ marginBottom: 24, borderLeft: '4px solid #d62828' }}>
               <h2 style={{ color: '#0a2a57', fontSize: 17, fontWeight: 700, marginBottom: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
                 <IconPencil size={18} /> {creating ? 'Criar Post' : 'Editar Post'}
+                {loadingEdit && <span style={{ fontSize: 13, fontWeight: 400, color: '#6b778c', marginLeft: 8 }}>Carregando...</span>}
               </h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
 
@@ -396,7 +506,7 @@ export function AdminPosts() {
                   </select>
                 </div>
 
-                {/* ── Campos BookClub ── */}
+                {/*Campos BookClub */}
                 {isBookClub && (<>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <label style={labelStyle}>Nome do Livro</label>
@@ -454,12 +564,15 @@ export function AdminPosts() {
                     <input style={inputStyle} value={form.studentClass} onChange={e => setForm({ ...form, studentClass: e.target.value })} placeholder="Ex: 9º A" />
                   </div>
 
+                  {/* Conteúdo textual */}
                   {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(form.type) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
                         <label style={labelStyle}>Conteúdo</label>
                         <textarea style={{ ...inputStyle, minHeight: 180 }} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
                       </div>
                   )}
+
+                  {/* URL */}
                   {['Art', 'Infographic', 'Multimedia', 'LibraLiterature'].includes(form.type) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
                         <label style={labelStyle}>URL (Imagem/Youtube)</label>
@@ -469,22 +582,70 @@ export function AdminPosts() {
                         )}
                       </div>
                   )}
+
+                  {/* Duração */}
                   {['Multimedia', 'LibraLiterature'].includes(form.type) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <label style={labelStyle}>Duração (mm:ss) {fetchingDuration && <span style={{ marginLeft: 8, fontSize: 11, color: '#6b778c' }}>buscando...</span>}</label>
                         <input style={inputStyle} value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="Ex: 03:30" />
                       </div>
                   )}
-                  {form.type === 'Cordel' && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Rimas</label><input style={inputStyle} value={form.rhymeScheme} onChange={e => setForm({ ...form, rhymeScheme: e.target.value })} /></div>)}
-                  {form.type === 'Tale' && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Gênero</label><input style={inputStyle} value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })} /></div>)}
+
+                  {/* Cordel */}
+                  {form.type === 'Cordel' && (<>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={labelStyle}>Esquema de Rimas</label>
+                      <input style={inputStyle} value={form.rhymeScheme} onChange={e => setForm({ ...form, rhymeScheme: e.target.value })} placeholder="Ex: ABCBDB" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={labelStyle}>Arte vinculada</label>
+                      <ArtAutocomplete value={form.artName} arts={arts} onChange={(val) => setForm({ ...form, artName: val })} />
+                    </div>
+                  </>)}
+
+                  {/* Tale */}
+                  {form.type === 'Tale' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={labelStyle}>Gênero</label>
+                        <input style={inputStyle} value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })} />
+                      </div>
+                  )}
+
+                  {/* Poem */}
+                  {form.type === 'Poem' && (<>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={labelStyle}>Tipo de Poema (poemType)</label>
+                      <input style={inputStyle} value={form.poemType} onChange={e => setForm({ ...form, poemType: e.target.value })} placeholder="Ex: Soneto, Haiku, Livre..." />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={labelStyle}>Esquema de Rimas</label>
+                      <input style={inputStyle} value={form.rhymeScheme} onChange={e => setForm({ ...form, rhymeScheme: e.target.value })} placeholder="Ex: ABAB, AABB..." />
+                    </div>
+                  </>)}
+
+                  {/* Essay */}
                   {form.type === 'Essay' && (<>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Nota</label><input type="number" style={inputStyle} value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} /></div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Tema</label><input style={inputStyle} value={form.theme} onChange={e => setForm({ ...form, theme: e.target.value })} /></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={labelStyle}>Nota</label>
+                      <input type="number" style={inputStyle} value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} placeholder="0 - 1000" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={labelStyle}>Tema</label>
+                      <input style={inputStyle} value={form.theme} onChange={e => setForm({ ...form, theme: e.target.value })} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                      <label style={labelStyle}>Descrição do Tema</label>
+                      <input style={inputStyle} value={form.themeDescription} onChange={e => setForm({ ...form, themeDescription: e.target.value })} placeholder="Ex: Tema sobre sustentabilidade..." />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                      <label style={labelStyle}>Feedback</label>
+                      <textarea style={{ ...inputStyle, minHeight: 80 }} value={form.feedback} onChange={e => setForm({ ...form, feedback: e.target.value })} placeholder="Feedback do avaliador..." />
+                    </div>
                   </>)}
                 </>)}
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <button className="action-btn btn-primary" onClick={handleSave} disabled={saving}>
+                <button className="action-btn btn-primary" onClick={handleSave} disabled={saving || loadingEdit}>
                   {saving ? 'Salvando...' : 'Salvar'}
                 </button>
                 <button className="action-btn btn-view" onClick={() => { setEditing(null); setCreating(false); }}>Cancelar</button>
