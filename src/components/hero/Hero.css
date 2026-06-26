@@ -165,6 +165,10 @@
 .hero-logo {
   max-width: 150px; 
   height: auto;
+  filter: drop-shadow(1px 0px 0px #ffffff)
+          drop-shadow(-1px 0px 0px #ffffff)
+          drop-shadow(0px 1px 0px #ffffff)
+          drop-shadow(0px -1px 0px #ffffff);
 }
 
 @media (max-width: 640px) {
