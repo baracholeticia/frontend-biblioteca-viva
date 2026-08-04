@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
+import { Pagination } from '../../components/pagination/Pagination'; // ajuste o caminho conforme a localização real do arquivo
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
 import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
 import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub, getBookClubParticipants } from '../../services/bookclubService';
@@ -250,10 +251,14 @@ export function PostDetail() {
     const [isLiking, setIsLiking] = useState(false);
     const [isCommenting, setIsCommenting] = useState(false);
     const [imageError, setImageError] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-
+    const [isSaved, setIsSaved] = useState(() => getSavedIds().includes(id));
     const [participants, setParticipants] = useState({ organizer: '', students: [] });
     const [activeTab, setActiveTab] = useState('resenhas');
+
+    const [reviewsPage, setReviewsPage] = useState(1);
+    const [reviewsPerPage, setReviewsPerPage] = useState(10);
+    const [commentsPage, setCommentsPage] = useState(1);
+    const [commentsPerPage, setCommentsPerPage] = useState(10);
 
     const [isEditingBookClub, setIsEditingBookClub] = useState(false);
     const [bookClubEditForm, setBookClubEditForm] = useState({
@@ -297,6 +302,11 @@ export function PostDetail() {
             );
         } catch { return false; }
     }, [post, isBookClub]);
+
+    useEffect(() => {
+        setReviewsPage(1);
+        setCommentsPage(1);
+    }, [id]);
 
     useEffect(() => {
         async function fetchData() {
@@ -507,6 +517,7 @@ export function PostDetail() {
             showToast('Comentário enviado!', 'success');
             const updatedComments = await getComments(id);
             setComments(updatedComments);
+            setCommentsPage(1);
         } catch (err) {
             console.error('Erro ao enviar comentário:', err);
             showToast('Erro ao enviar. Tente novamente.', 'error');
@@ -535,6 +546,22 @@ export function PostDetail() {
         return comments.length + repliesCount;
     }, [comments, replies]);
 
+    // --- Fatias paginadas de resenhas (clube do livro) e comentários (posts normais) ---
+    const reviewsTotalPages = Math.max(1, Math.ceil(comments.length / reviewsPerPage));
+    const paginatedReviews = useMemo(() => {
+        const start = (reviewsPage - 1) * reviewsPerPage;
+        return comments.slice(start, start + reviewsPerPage);
+    }, [comments, reviewsPage, reviewsPerPage]);
+
+    const commentsTotalPages = Math.max(1, Math.ceil(comments.length / commentsPerPage));
+    const paginatedComments = useMemo(() => {
+        const start = (commentsPage - 1) * commentsPerPage;
+        return comments.slice(start, start + commentsPerPage);
+    }, [comments, commentsPage, commentsPerPage]);
+
+    const handleReviewsPerPageChange = (n) => { setReviewsPerPage(n); setReviewsPage(1); };
+    const handleCommentsPerPageChange = (n) => { setCommentsPerPage(n); setCommentsPage(1); };
+
     const handleOpenReply = (commentId) => {
         if (!isLoggedIn()) { showToast('Faça login para responder.', 'error'); navigate('/login'); return; }
         setReplyingTo(replyingTo === commentId ? null : commentId);
@@ -558,10 +585,32 @@ export function PostDetail() {
             setReplyingTo(null);
             showToast('Resposta enviada!', 'success');
         } catch (err) {
+            if (err.response?.status === 409) {
+                // Já existe uma resposta — busca ela do servidor e exibe
+                try {
+                    const existing = await getReplies(id, commentId);
+                    if (existing) {
+                        setReplies(prev => ({
+                            ...prev,
+                            [commentId]: {
+                                ...existing,
+                                isAdmin: isAdmin,
+                                isCurador: isCurador && !isAdmin,
+                            }
+                        }));
+                    }
+                } catch {
+                    // ignora
+                }
+                showToast('Esse comentário já possui uma resposta.', 'error');
+            } else {
+                showToast('Erro ao enviar resposta. Tente novamente.', 'error');
+            }
             console.error('Erro ao enviar resposta:', err);
-            showToast('Erro ao enviar resposta. Tente novamente.', 'error');
         } finally {
             setIsSendingReply(false);
+            setReplyingTo(null);
+            setReplyText('');
         }
     };
 
@@ -930,22 +979,32 @@ export function PostDetail() {
                             {activeTab === 'resenhas' && (
                                 <>
                                     {comments.length > 0 ? (
-                                        <div className="comment-list">
-                                            {comments.map(comment => (
-                                                <div key={comment.id} className="comment-item">
-                                                    <div className="comment-author">
-                                                        <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
-                                                            {comment.authorName}
-                                                        </Link>
-                                                        <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
-                                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
-                                                            {formatDate(comment.createdAt)}
-                                                        </span>
+                                        <>
+                                            <div className="comment-list">
+                                                {paginatedReviews.map(comment => (
+                                                    <div key={comment.id} className="comment-item">
+                                                        <div className="comment-author">
+                                                            <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
+                                                                {comment.authorName}
+                                                            </Link>
+                                                            <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
+                                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
+                                                                {formatDate(comment.createdAt)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="comment-text">{comment.content}</div>
                                                     </div>
-                                                    <div className="comment-text">{comment.content}</div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
+                                            <Pagination
+                                                currentPage={reviewsPage}
+                                                totalPages={reviewsTotalPages}
+                                                totalItems={comments.length}
+                                                perPage={reviewsPerPage}
+                                                onPageChange={setReviewsPage}
+                                                onPerPageChange={handleReviewsPerPageChange}
+                                            />
+                                        </>
                                     ) : (
                                         <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif' }}>
                                             Nenhuma resenha ainda.
@@ -965,22 +1024,32 @@ export function PostDetail() {
                         <section className="comments-section">
                             <h2>Resenhas dos Leitores</h2>
                             {comments.length > 0 ? (
-                                <div className="comment-list">
-                                    {comments.map(comment => (
-                                        <div key={comment.id} className="comment-item">
-                                            <div className="comment-author">
-                                                <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
-                                                    {comment.authorName}
-                                                </Link>
-                                                <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
-                                                <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
-                                                    {formatDate(comment.createdAt)}
-                                                </span>
+                                <>
+                                    <div className="comment-list">
+                                        {paginatedReviews.map(comment => (
+                                            <div key={comment.id} className="comment-item">
+                                                <div className="comment-author">
+                                                    <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
+                                                        {comment.authorName}
+                                                    </Link>
+                                                    <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
+                                                        {formatDate(comment.createdAt)}
+                                                    </span>
+                                                </div>
+                                                <div className="comment-text">{comment.content}</div>
                                             </div>
-                                            <div className="comment-text">{comment.content}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                    <Pagination
+                                        currentPage={reviewsPage}
+                                        totalPages={reviewsTotalPages}
+                                        totalItems={comments.length}
+                                        perPage={reviewsPerPage}
+                                        onPageChange={setReviewsPage}
+                                        onPerPageChange={handleReviewsPerPageChange}
+                                    />
+                                </>
                             ) : (
                                 <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif' }}>
                                     Nenhuma resenha ainda.
@@ -994,145 +1063,145 @@ export function PostDetail() {
                         <section className="comments-section">
                             <h2>Comentários</h2>
                             {comments.length > 0 ? (
-                                <div className="comment-list">
-                                    {comments.map(comment => {
-                                        const reply = replies[comment.id];
-                                        const badge = reply && !Array.isArray(reply)
-                                            ? resolveReplyBadge(reply, isBookClub, isAdmin, isCurador)
-                                            : null;
+                                    <div className="comment-list">
+                                        {paginatedComments.map(comment => {
+                                            const reply = replies[comment.id];
+                                            const badge = reply && !Array.isArray(reply)
+                                                ? resolveReplyBadge(reply, isBookClub, isAdmin, isCurador)
+                                                : null;
 
-                                        return (
-                                            <div key={comment.id} className="comment-item">
-                                                <div className="comment-author">
-                                                    <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
-                                                        {comment.authorName}
-                                                    </Link>
-                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
-                                                        {formatDate(comment.createdAt)}
-                                                    </span>
-                                                    {(isAdmin || isCurador) && (
-                                                        <span className="comment-admin-actions">
-                                                            <button
-                                                                className="action-btn btn-edit"
-                                                                title="Editar comentário"
-                                                                onClick={() => {
-                                                                    if (editingCommentId === comment.id) {
-                                                                        setEditingCommentId(null);
-                                                                        setEditingCommentText('');
-                                                                    } else {
-                                                                        handleEditComment(comment);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <IconPencil size={13} />
-                                                                {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
-                                                            </button>
-                                                            <button
-                                                                className="action-btn btn-delete"
-                                                                title="Excluir comentário"
-                                                                onClick={() => handleDeleteComment(comment.id)}
-                                                            >
-                                                                <IconTrash size={13} /> Excluir
-                                                            </button>
+                                            return (
+                                                <div key={comment.id} className="comment-item">
+                                                    <div className="comment-author">
+                                                        <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
+                                                            {comment.authorName}
+                                                        </Link>
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
+                                                            {formatDate(comment.createdAt)}
                                                         </span>
-                                                    )}
-                                                </div>
-
-                                                {editingCommentId === comment.id ? (
-                                                    <div className="comment-edit-form">
-                                                        <textarea
-                                                            className="comment-edit-textarea"
-                                                            value={editingCommentText}
-                                                            onChange={e => setEditingCommentText(e.target.value)}
-                                                            disabled={isSavingComment}
-                                                            rows={3}
-                                                        />
-                                                        <div className="comment-edit-actions">
-                                                            <button
-                                                                className="reply-cancel-btn"
-                                                                onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
-                                                                disabled={isSavingComment}
-                                                            >
-                                                                Cancelar
-                                                            </button>
-                                                            <button
-                                                                className="reply-submit-btn"
-                                                                onClick={() => handleSaveEditComment(comment.id)}
-                                                                disabled={isSavingComment || !editingCommentText.trim()}
-                                                            >
-                                                                {isSavingComment ? 'Salvando...' : 'Salvar'}
-                                                            </button>
-                                                        </div>
+                                                        {(isAdmin || isCurador) && (
+                                                            <span className="comment-admin-actions">
+                                                                <button
+                                                                    className="action-btn btn-edit"
+                                                                    title="Editar comentário"
+                                                                    onClick={() => {
+                                                                        if (editingCommentId === comment.id) {
+                                                                            setEditingCommentId(null);
+                                                                            setEditingCommentText('');
+                                                                        } else {
+                                                                            handleEditComment(comment);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <IconPencil size={13} />
+                                                                    {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
+                                                                </button>
+                                                                <button
+                                                                    className="action-btn btn-delete"
+                                                                    title="Excluir comentário"
+                                                                    onClick={() => handleDeleteComment(comment.id)}
+                                                                >
+                                                                    <IconTrash size={13} /> Excluir
+                                                                </button>
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="comment-text">{comment.content}</div>
-                                                        <button
-                                                            className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
-                                                            onClick={() => handleLikeComment(comment.id)}
-                                                            style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
-                                                        >
-                                                            <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
-                                                            <span>{commentLikes[comment.id]?.count || 0}</span>
-                                                        </button>
-                                                    </>
-                                                )}
 
-                                                {reply && !Array.isArray(reply) && badge && (
-                                                    <div className="reply-list">
-                                                        <div className="reply-item">
-                                                            <div className="reply-author">
-                                                                <span className={`reply-badge ${badge.className}`} title={badge.title}>
+                                                    {editingCommentId === comment.id ? (
+                                                        <div className="comment-edit-form">
+                                                            <textarea
+                                                                className="comment-edit-textarea"
+                                                                value={editingCommentText}
+                                                                onChange={e => setEditingCommentText(e.target.value)}
+                                                                disabled={isSavingComment}
+                                                                rows={3}
+                                                            />
+                                                            <div className="comment-edit-actions">
+                                                                <button
+                                                                    className="reply-cancel-btn"
+                                                                    onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                                                    disabled={isSavingComment}
+                                                                >
+                                                                    Cancelar
+                                                                </button>
+                                                                <button
+                                                                    className="reply-submit-btn"
+                                                                    onClick={() => handleSaveEditComment(comment.id)}
+                                                                    disabled={isSavingComment || !editingCommentText.trim()}
+                                                                >
+                                                                    {isSavingComment ? 'Salvando...' : 'Salvar'}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="comment-text">{comment.content}</div>
+                                                            <button
+                                                                className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
+                                                                onClick={() => handleLikeComment(comment.id)}
+                                                                style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
+                                                            >
+                                                                <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
+                                                                <span>{commentLikes[comment.id]?.count || 0}</span>
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {reply && !Array.isArray(reply) && badge && (
+                                                        <div className="reply-list">
+                                                            <div className="reply-item">
+                                                                <div className="reply-author">
+                                                                    <span className={`reply-badge ${badge.className}`} title={badge.title}>
     <ShieldIcon />
     <span className="reply-badge__role">{badge.label}</span>
 </span>
-                                                                <span className="reply-date">{formatDate(reply.createdAt)}</span>
-                                                            </div>
-                                                            <div className="reply-text">{reply.content}</div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {canReply && (
-                                                    <div className="reply-action-area">
-                                                        {replyingTo === comment.id ? (
-                                                            <div className="reply-form">
-                                                                <textarea
-                                                                    className="reply-textarea"
-                                                                    placeholder="Escreva sua resposta..."
-                                                                    value={replyText}
-                                                                    onChange={e => setReplyText(e.target.value)}
-                                                                    disabled={isSendingReply}
-                                                                    rows={3}
-                                                                />
-                                                                <div className="reply-form-actions">
-                                                                    <button
-                                                                        className="reply-cancel-btn"
-                                                                        onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                                                        disabled={isSendingReply}
-                                                                    >
-                                                                        Cancelar
-                                                                    </button>
-                                                                    <button
-                                                                        className="reply-submit-btn"
-                                                                        onClick={() => handleSendReply(comment.id)}
-                                                                        disabled={isSendingReply || !replyText.trim()}
-                                                                    >
-                                                                        {isSendingReply ? 'Enviando...' : 'Responder'}
-                                                                    </button>
+                                                                    <span className="reply-date">{formatDate(reply.createdAt)}</span>
                                                                 </div>
+                                                                <div className="reply-text">{reply.content}</div>
                                                             </div>
-                                                        ) : (
-                                                            <button className="reply-btn" onClick={() => handleOpenReply(comment.id)}>
-                                                                ↩ Responder
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                                        </div>
+                                                    )}
+
+                                                    {canReply && (
+                                                        <div className="reply-action-area">
+                                                            {replyingTo === comment.id ? (
+                                                                <div className="reply-form">
+                                                                    <textarea
+                                                                        className="reply-textarea"
+                                                                        placeholder="Escreva sua resposta..."
+                                                                        value={replyText}
+                                                                        onChange={e => setReplyText(e.target.value)}
+                                                                        disabled={isSendingReply}
+                                                                        rows={3}
+                                                                    />
+                                                                    <div className="reply-form-actions">
+                                                                        <button
+                                                                            className="reply-cancel-btn"
+                                                                            onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                                                            disabled={isSendingReply}
+                                                                        >
+                                                                            Cancelar
+                                                                        </button>
+                                                                        <button
+                                                                            className="reply-submit-btn"
+                                                                            onClick={() => handleSendReply(comment.id)}
+                                                                            disabled={isSendingReply || !replyText.trim()}
+                                                                        >
+                                                                            {isSendingReply ? 'Enviando...' : 'Responder'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <button className="reply-btn" onClick={() => handleOpenReply(comment.id)}>
+                                                                    ↩ Responder
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                             ) : (
                                 <p style={{ color: '#6b778c', marginBottom: 24, fontFamily: 'Poppins, system-ui, sans-serif' }}>
                                     Seja o primeiro a interagir!
@@ -1150,10 +1219,22 @@ export function PostDetail() {
                                     {isCommenting ? 'Enviando...' : 'Enviar Comentário'}
                                 </button>
                             </form>
+
+                                    {comments.length > 0 && (
+                                        <div style={{ marginTop: 24 }}>
+                                            <Pagination
+                                                currentPage={commentsPage}
+                                                totalPages={commentsTotalPages}
+                                                totalItems={comments.length}
+                                                perPage={commentsPerPage}
+                                                onPageChange={setCommentsPage}
+                                                onPerPageChange={handleCommentsPerPageChange}
+                                            />
+                                        </div>
+                                    )}
                         </section>
                     </div>
                 )}
-
             </section>
             <Footer />
         </main>

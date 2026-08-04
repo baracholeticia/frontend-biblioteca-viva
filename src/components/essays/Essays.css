@@ -196,3 +196,26 @@
 @media (max-width: 500px) {
   .essays-grid { grid-template-columns: 1fr; }
 }
+
+.card-body h3 {
+  margin: 10px 0 8px;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  font-weight: 700;
+  font-family: 'Poppins', system-ui, sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.essay-card {
+  min-width: 0;
+}
+
+.card-body {
+  min-width: 0;
+}

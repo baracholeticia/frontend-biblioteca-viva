@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Hero.css';
-// Importando a logo da escola
-import logoEscola from '../../assets/logos/escola.png'; 
+import logoEscola from '../../assets/logos/escola.png';
 
 export function Hero() {
     const [query, setQuery] = useState('');

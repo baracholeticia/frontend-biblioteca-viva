@@ -14,20 +14,23 @@ export function getYoutubeThumbnail(url) {
   return `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
 }
 
-// NOVA FUNÇÃO DE FORMATAÇÃO DE TEMPO
 export function formatDuration(durationInfo) {
   if (!durationInfo) return '';
+  
   if (typeof durationInfo === 'string' && durationInfo.includes(':') && !durationInfo.startsWith('PT')) {
     return durationInfo;
   }
+
   if (typeof durationInfo === 'object' && durationInfo.seconds !== undefined) {
     const m = Math.floor(durationInfo.seconds / 60).toString().padStart(2, '0');
     const s = (durationInfo.seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
+  
   if (typeof durationInfo === 'string' && durationInfo.startsWith('PT')) {
     const minMatch = durationInfo.match(/(\d+)M/);
     const secMatch = durationInfo.match(/(\d+)S/);
+    
     const m = minMatch ? minMatch[1].padStart(2, '0') : '00';
     const s = secMatch ? secMatch[1].padStart(2, '0') : '00';
     return `${m}:${s}`;
@@ -102,7 +105,6 @@ export function Multimidia() {
           </div>
         )}
 
-        {/* Galeria de Artes */}
         {artes.length > 0 && (
           <div className="mv-grid-column">
             <div className="mv-category__header">
@@ -159,7 +161,6 @@ export function Multimidia() {
             </div>
           )}
 
-          {/* Literatura em Libras */}
           {libras.length > 0 && (
             <div className="mv-grid-column">
               <div className="mv-category__header">

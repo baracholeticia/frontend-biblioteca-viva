@@ -175,6 +175,11 @@ export function ClubeLeitura() {
         ? reviews
         : reviews.filter(r => Number(r.rating) === filterRating);
 
+    // Limita a exibição às 3 avaliações mais recentes (considerando o filtro ativo)
+    const displayedReviews = [...filteredReviews]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 3);
+
     if (loading) return null;
 
     const filterOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
@@ -355,9 +360,9 @@ export function ClubeLeitura() {
                                 </div>
                             )}
 
-                            {filteredReviews.length > 0 ? (
+                            {displayedReviews.length > 0 ? (
                                 <div className="cl-reviews-grid">
-                                    {filteredReviews.map((review) => {
+                                    {displayedReviews.map((review) => {
                                         const rating = Number(review.rating);
                                         return (
                                             <div key={review.id} className="cl-review-card">
@@ -387,6 +392,17 @@ export function ClubeLeitura() {
                                 </div>
                             ) : (
                                 <p className="cl-reviews__empty">Nenhuma avaliação encontrada com esta nota.</p>
+                            )}
+
+                            {filteredReviews.length > 3 && (
+                                <div className="cl-reviews__more-wrapper">
+                                    <Link
+                                        to={`/clube-leitura/${nextMeeting.id}`}
+                                        className="cl-reviews__more-link"
+                                    >
+                                        Ver todas as {filteredReviews.length} avaliações
+                                    </Link>
+                                </div>
                             )}
                         </div>
                     </>

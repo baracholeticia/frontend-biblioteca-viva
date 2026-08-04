@@ -68,7 +68,6 @@ export function Header() {
     }
   };
 
-  // Nova função de Logout
   const handleLogout = async () => {
     try {
       await logout();

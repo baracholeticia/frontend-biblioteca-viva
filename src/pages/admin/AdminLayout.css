@@ -1,6 +1,4 @@
-/* ========================================================
-   ESTRUTURA PRINCIPAL DO ADMIN (DESKTOP)
-======================================================== */
+
 .admin-wrapper {
   display: flex;
   min-height: 100vh;
@@ -114,9 +112,7 @@
   padding: 32px;
 }
 
-/* ========================================================
-   COMPONENTES COMPARTILHADOS E FILTROS
-======================================================== */
+
 .admin-page-title {
   font-size: 26px;
   font-weight: 800;
@@ -163,7 +159,6 @@
   text-decoration: none;
 }
 
-/* BARRA DE FILTROS E BUSCA */
 .admin-controls-bar {
   display: flex;
   gap: 12px;
@@ -196,13 +191,12 @@
   cursor: pointer;
 }
 
-/* ========================================================
-   TABELAS E BOTÕES
-======================================================== */
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: fixed;
 }
 
 .admin-table th {
@@ -365,7 +359,6 @@
   gap: 12px;
 }
 
-/* Limitador de linhas com propriedade padrão para compatibilidade (Evita avisos no Console) */
 .comment-clamp {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -373,6 +366,8 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .mobile-filter-toggle {
@@ -385,9 +380,7 @@
   display: none;
 }
 
-/* ========================================================
-   RESPONSIVIDADE DO ADMIN (CELULARES E TABLETS)
-======================================================== */
+
 @media (max-width: 768px) {
   .admin-mobile-header {
     display: flex;

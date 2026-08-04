@@ -52,7 +52,8 @@ export function AdminComments() {
       } else if (Array.isArray(data)) {
           commentsArray = data;
       }
-      
+
+
       setAllComments(commentsArray);
     } catch (error) {
       console.error(error);
@@ -132,7 +133,7 @@ export function AdminComments() {
 
   const saveEditReply = async (workId, commentId, replyId) => {
     try {
-      await updateReply(workId, commentId, editReplyText);
+      await updateReply(workId, commentId, replyId, editReplyText);
       showToast("Resposta atualizada!", "success");
       setEditingReplyId(null);
       loadRepliesForComment(workId, commentId);
@@ -156,9 +157,9 @@ export function AdminComments() {
   };
 
   let filtered = allComments.filter(c =>
-    c.content?.toLowerCase().includes(search.toLowerCase()) ||
-    c.authorName?.toLowerCase().includes(search.toLowerCase()) ||
-    c.workTitle?.toLowerCase().includes(search.toLowerCase())
+      c.content?.toLowerCase().includes(search.toLowerCase()) ||
+      c.userName?.toLowerCase().includes(search.toLowerCase()) ||
+      c.workTitle?.toLowerCase().includes(search.toLowerCase())
   );
 
   filtered.sort((a, b) => {
@@ -236,8 +237,7 @@ export function AdminComments() {
             <td>
               <div className="row-header" onClick={() => toggleExpand(comment)} style={{ cursor: 'pointer' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong style={{ color: '#0a2a57' }}>{comment.authorName}</strong>
-                  {editingId === comment.id ? (
+                  <strong style={{ color: '#0a2a57' }}>{comment.userName}</strong>                  {editingId === comment.id ? (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }} onClick={e => e.stopPropagation()}>
                       <input style={{ ...inputStyle, flex: 1 }} value={editText} onChange={e => setEditText(e.target.value)} autoFocus />
                       <button className="action-btn btn-approve" onClick={() => saveEdit(comment)} style={{ padding: 6 }}><IconCheck size={16} /></button>
@@ -282,9 +282,15 @@ export function AdminComments() {
               )}
             </td>
 
-            <td className="desktop-cell" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{comment.authorName}</td>
-            <td className="desktop-cell" style={{ fontSize: 13, color: '#6b778c', maxWidth: 180 }}>{comment.workTitle || 'Não especificado'}</td>
-            <td className="desktop-cell">
+            <td className="desktop-cell" style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{comment.userName}</td>           <td className="desktop-cell" style={{ fontSize: 13, color: '#6b778c', maxWidth: 180 }}>
+  <span
+      className="truncate-text"
+      style={{ maxWidth: 180 }}
+      title={comment.workTitle || 'Não especificado'}
+  >
+    {comment.workTitle || 'Não especificado'}
+  </span>
+          </td>      <td className="desktop-cell">
               <div className="admin-table-actions">
                 <button className="action-btn btn-view" title="Ver Post" onClick={() => navigate(`/post/${comment.workId}`)}><IconEye size={14} /></button>
                 <button className="action-btn btn-edit" title="Editar Comentário" onClick={() => startEdit(comment)}><IconPencil size={14} /></button>

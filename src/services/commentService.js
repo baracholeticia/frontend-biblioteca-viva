@@ -2,7 +2,7 @@ import api from './api';
 
 export async function getComments(workId, page = 0, size = 10) {
     const response = await api.get(`/work/${workId}/comments?page=${page}&size=${size}`);
-    
+
     if (response.data) {
         if (response.data.content) {
             return response.data.content;
@@ -36,77 +36,20 @@ export async function unlikeComment(workId, commentId) {
     await api.delete(`/work/${workId}/comments/${commentId}/like`);
 }
 
-const REPLIES_KEY = (workId) => `post_replies_${workId}`;
-
-function loadLocalReplies(workId) {
-    try {
-        const stored = localStorage.getItem(REPLIES_KEY(workId));
-        if (stored) {
-            return JSON.parse(stored);
-        } else {
-            return {};
-        }
-    } catch {
-        return {}; 
-    }
-}
-
-function saveLocalReplies(workId, data) {
-    localStorage.setItem(REPLIES_KEY(workId), JSON.stringify(data));
-}
-
 export async function getReplies(workId, commentId) {
     try {
         const response = await api.get(`/work/${workId}/comments/${commentId}/reply`);
-        return response.data?.content || response.data || null;
-    } catch (error) {
-        // Se der 404, significa apenas que não há resposta vinculada. Retornamos nulo.
-        if (error.response && error.response.status === 404) {
-            return null;
-        }
-        return null; // Para outros erros, garantimos que não retorne algo que quebre a tela
+        return response.data?.content?.[0] ?? response.data ?? null;
+    } catch {
+        return null;
     }
 }
 
 export async function createReply(workId, commentId, content, authorName, isAdminUser) {
-    let isAdmin = false;
-    if (isAdminUser) {
-        isAdmin = true;
-    }
-
-    try {
-        const response = await api.post(`/work/${workId}/comments/${commentId}/reply`, { content });
-        let responseData = response.data;
-        responseData.isAdmin = isAdmin;
-        
-        return responseData;
-    } catch  {
-        const all = loadLocalReplies(workId);
-        let list = [];
-        
-        if (all[commentId]) {
-            list = all[commentId];
-        }
-
-        let finalAuthorName = 'Autor';
-        if (authorName) {
-            finalAuthorName = authorName;
-        }
-
-        const newReply = {
-            id: `local_${Date.now()}`,
-            content: content,
-            authorName: finalAuthorName,
-            createdAt: new Date().toISOString(),
-            isAdmin: isAdmin,
-        };
-
-        list.push(newReply);
-        all[commentId] = list;
-        saveLocalReplies(workId, all);
-        
-        return newReply;
-    }
+    const response = await api.post(`/work/${workId}/comments/${commentId}/reply`, { content });
+    const responseData = response.data;
+    responseData.isAdmin = !!isAdminUser;
+    return responseData;
 }
 
 export async function updateReply(workId, commentId, content) {

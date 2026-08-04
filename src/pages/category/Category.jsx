@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
@@ -23,19 +23,19 @@ const typeMap = {
 };
 
 const typeLabels = {
-    'Essay':           'redação redações ensaio ensaios',
-    'Cordel':          'cordel cordéis cordeis literatura',
-    'Tale':            'conto contos tale',
-    'ShortStory':      'crônica crônicas cronica cronicas',
+    'Essay':           'redacao redacoes ensaio ensaios nota10 nota 10',
+    'Cordel':          'cordel cordeis literatura nordeste',
+    'Tale':            'conto contos tale historia historias',
+    'ShortStory':      'cronica cronicas short story',
     'Poem':            'poema poemas poesia poesias verso versos',
-    'Infographic':     'infográfico infografico infográficos infograficos',
-    'Art':             'arte artes visual',
-    'Multimedia':      'multimídia multimidia video vídeo videos vídeos',
-    'LibraLiterature': 'libras literatura',
-    'Article':         'artigo artigos jornal notícia noticia',
+    'Infographic':     'infografico infograficos grafico graficos dados',
+    'Art':             'arte artes visual galeria pintura desenho',
+    'Multimedia':      'multimidia video videos autoral autorais youtube',
+    'LibraLiterature': 'libras literatura sinais surdo surdos',
+    'Article':         'artigo artigos jornal noticia noticias escola',
+    'BookClub':        'clube leitura livro livros encontro book club',
 };
 
-// --- HELPERS PARA THUMBNAIL DO YOUTUBE ---
 const getYouTubeId = (url) => {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
@@ -46,6 +46,26 @@ const getThumbnailUrl = (url) => {
     const ytId = getYouTubeId(url);
     return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : url;
 };
+
+const norm = (str) =>
+    (str ?? '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+function matchesSearch(post, query) {
+    if (!query) return true;
+    const words = norm(query).split(/\s+/).filter(Boolean);
+    const fields = [
+        norm(post.title),
+        norm(post.author),
+        norm(post.description),
+        norm(typeLabels[post.type] ?? ''),
+        norm(post.type),
+    ].join(' ');
+    return words.every(word => fields.includes(word));
+}
 
 export function Category() {
     const { id } = useParams();
@@ -72,15 +92,11 @@ export function Category() {
                 setError('');
 
                 if (isSearchMode) {
-                    const data = await getAllWorks();
-                    setWorks(data);
-                } else if (id === 'clube-leitura') {
-                    const clubData = await getAllBookClubs();
-                    
-                    // Verifica se os dados estão dentro de 'content' (padrão de paginação) ou se já é o array direto
-                    const clubsArray = clubData.content || clubData; 
-
-                    // Agora sim, iteramos sobre o array extraído
+                    const [worksData, clubData] = await Promise.all([
+                        getAllWorks(),
+                        getAllBookClubs().catch(() => []),
+                    ]);
+                    const clubsArray = clubData.content || clubData;
                     const mappedClubs = (Array.isArray(clubsArray) ? clubsArray : []).map(bc => ({
                         id: bc.id,
                         type: 'BookClub',
@@ -90,14 +106,29 @@ export function Category() {
                         url: bc.bookCoverUrl,
                         publicationDate: bc.date,
                         likeCount: bc.averageRating || 0,
-                        commentCount: bc.participantsCount || 0
+                        commentCount: bc.participantsCount || 0,
                     }));
-                    
+                    setWorks([...(worksData || []), ...mappedClubs]);
+
+                } else if (id === 'clube-leitura') {
+                    const clubData = await getAllBookClubs();
+                    const clubsArray = clubData.content || clubData;
+                    const mappedClubs = (Array.isArray(clubsArray) ? clubsArray : []).map(bc => ({
+                        id: bc.id,
+                        type: 'BookClub',
+                        title: bc.bookName,
+                        author: bc.organizerName || bc.bookAuthor,
+                        description: bc.bookSynopses,
+                        url: bc.bookCoverUrl,
+                        publicationDate: bc.date,
+                        likeCount: bc.averageRating || 0,
+                        commentCount: bc.participantsCount || 0,
+                    }));
                     setWorks(mappedClubs);
+
                 } else {
                     if (!currentCategory) return;
-                    const backendType = typeMap[id];
-                    const data = await getAllWorks(backendType);
+                    const data = await getAllWorks(typeMap[id]);
                     setWorks(data);
                 }
             } catch (err) {
@@ -115,20 +146,10 @@ export function Category() {
         setCurrentPage(1);
     }, [queryFromHero]);
 
-    const filtered = works.filter((w) => {
-        if (!search) return true;
-        const q = search.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const normalize = (str) => (str ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const typeTranslation = typeLabels[w.type] ?? '';
-
-        return (
-            normalize(w.title).includes(q) ||
-            normalize(w.author).includes(q) ||
-            normalize(w.description).includes(q) ||
-            normalize(w.type).includes(q) ||
-            normalize(typeTranslation).includes(q)
-        );
-    });
+    const filtered = useMemo(() =>
+            works.filter(w => matchesSearch(w, search)),
+        [works, search]
+    );
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     const safePage = Math.min(currentPage, totalPages);
@@ -181,6 +202,14 @@ export function Category() {
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                         />
+                        {search && (
+                            <button
+                                onClick={() => { setSearch(''); setCurrentPage(1); }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 18, lineHeight: 1, padding: 0 }}
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
                 </div>
                 <p className="category-hero__label">
@@ -196,10 +225,18 @@ export function Category() {
                     <div className="empty-state"><p style={{ color: '#d62828' }}>{error}</p></div>
                 ) : filtered.length === 0 ? (
                     <div className="empty-state">
-                <span className="empty-state__icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                  <IconDoc size={48} color="#94a3b8" />
-                </span>
+                        <span className="empty-state__icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                            <IconDoc size={48} color="#94a3b8" />
+                        </span>
                         <p>{search ? 'Nenhum resultado encontrado.' : 'Nenhuma publicação ainda.'}</p>
+                        {search && (
+                            <button
+                                onClick={() => setSearch('')}
+                                style={{ marginTop: 12, color: '#d62828', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, fontFamily: 'Poppins, system-ui, sans-serif' }}
+                            >
+                                Limpar busca
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="category-content-inner">
@@ -209,8 +246,6 @@ export function Category() {
                                 const categoryId = isSearchMode
                                     ? (post.type === 'BookClub' ? 'clube-leitura' : Object.keys(typeMap).find((k) => typeMap[k] === post.type) ?? 'redacoes')
                                     : id;
-
-                                // Identifica se é vídeo para puxar a Thumbnail
                                 const finalImageUrl = getThumbnailUrl(post.url);
 
                                 return (
@@ -219,31 +254,28 @@ export function Category() {
                                             <img src={finalImageUrl} alt={post.title} className="post-card-image" />
                                         )}
                                         <span className="post-card-category">
-                          {post.type === 'BookClub' ? 'Clube de Leitura' : (categories.find((c) => typeMap[c.id] === post.type)?.title ?? post.type)}
-                        </span>
+                                            {post.type === 'BookClub' ? 'Clube de Leitura' : (categories.find((c) => typeMap[c.id] === post.type)?.title ?? post.type)}
+                                        </span>
                                         <h2 className="post-card-title">{post.title}</h2>
                                         <p className="post-card-excerpt">{post.description}</p>
                                         <div className="post-card-footer">
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <IconPencil size={14} /> {post.author}
-                          </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <IconCalendar size={14} /> {formatDate(post.publicationDate)}
-                          </span>
+                                                <IconPencil size={14} /> {post.author}
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <IconCalendar size={14} /> {formatDate(post.publicationDate)}
+                                            </span>
                                         </div>
                                         <div className="post-card-stats">
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <IconHeart size={14} color="#d62828" /> {post.likeCount || 0}
-                          </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <IconMessage size={14} /> {post.commentCount || 0}
-                          </span>
-                                            <span
-                                                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                                                className={isSaved ? 'post-card-stat--saved' : ''}
-                                            >
-                            <IconBookmark size={14} color={isSaved ? '#0a2a57' : '#6b778c'} />
-                          </span>
+                                                <IconHeart size={14} color="#d62828" /> {post.likeCount || 0}
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <IconMessage size={14} /> {post.commentCount || 0}
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }} className={isSaved ? 'post-card-stat--saved' : ''}>
+                                                <IconBookmark size={14} color={isSaved ? '#0a2a57' : '#6b778c'} />
+                                            </span>
                                         </div>
                                     </Link>
                                 );

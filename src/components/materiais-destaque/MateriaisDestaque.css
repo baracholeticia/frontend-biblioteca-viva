@@ -223,9 +223,8 @@
     }
 }
 
-/* Estilos adicionais para quando o card não tem imagem */
 .md-card--text-only {
-    border-top: 6px solid #1a2f5e; /* Borda azul para compensar a falta da imagem */
+    border-top: 6px solid #1a2f5e;
     padding-top: 8px; 
 }
 
@@ -233,14 +232,47 @@
     margin-bottom: 12px;
 }
 
-/* Modificador para o badge quando ele está no corpo de texto (sem imagem) */
 .md-card__badge--static {
     position: static;
     display: inline-block;
 }
 
-/* Opcional: Garante que o texto description não quebre se for muito longo,
-   mantendo a altura do card mais consistente em textos curtos */
+
 .md-card--text-only .md-card__body {
     justify-content: flex-start;
+}
+
+.md-card__title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.md-card__author {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: break-word;
+}
+
+.md-card__shared {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.md-card__body {
+    min-width: 0;
+}
+
+.md-card {
+    overflow: hidden;
 }

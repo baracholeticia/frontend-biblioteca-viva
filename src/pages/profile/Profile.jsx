@@ -4,6 +4,7 @@ import { Header } from '../../components/header/Header';
 import { getAllWorks } from '../../services/workService';
 import { logout } from '../../services/authService';
 import { IconBookmark } from '../../components/icons';
+import { Pagination } from '../../components/pagination/Pagination';
 import './Profile.css';
 
 const getYouTubeId = (url) => {
@@ -36,9 +37,32 @@ export function Profile() {
     const [formMsg, setFormMsg] = useState(null);
     const [saving, setSaving] = useState(false);
 
+    const [worksPage, setWorksPage] = useState(1);
+    const [worksPerPage, setWorksPerPage] = useState(10);
+    const [savedPage, setSavedPage] = useState(1);
+    const [savedPerPage, setSavedPerPage] = useState(10);
+
+
     const savedWorks = allWorks.filter((w) => savedIds.includes(w.id));
 
+    const worksTotalPages = Math.max(1, Math.ceil(works.length / worksPerPage));
+    const paginatedWorks = works.slice(
+        (worksPage - 1) * worksPerPage,
+        worksPage * worksPerPage
+    );
+
+    const savedTotalPages = Math.max(1, Math.ceil(savedWorks.length / savedPerPage));
+    const paginatedSavedWorks = savedWorks.slice(
+        (savedPage - 1) * savedPerPage,
+        savedPage * savedPerPage
+    );
+
+    const handleWorksPerPageChange = (n) => { setWorksPerPage(n); setWorksPage(1); };
+    const handleSavedPerPageChange = (n) => { setSavedPerPage(n); setSavedPage(1); };
+
     useEffect(() => {
+        setWorksPage(1);
+        setSavedPage(1);
         getAllWorks()
             .then((data) => {
                 setAllWorks(data);
@@ -119,7 +143,6 @@ export function Profile() {
                     )}
                 </div>
 
-                {/* Exibindo a Imagem / Thumbnail no Perfil */}
                 {finalImageUrl && (
                     <img 
                         src={finalImageUrl} 
@@ -209,9 +232,19 @@ export function Profile() {
                                     <span>Suas obras aprovadas pelos administradores aparecerão aqui.</span>
                                 </div>
                             ) : (
-                                <div className="profile-works__grid">
-                                    {works.map((w) => <WorkCard key={w.id} w={w} />)}
-                                </div>
+                                <>
+                                    <div className="profile-works__grid">
+                                        {paginatedWorks.map((w) => <WorkCard key={w.id} w={w} />)}
+                                    </div>
+                                    <Pagination
+                                        currentPage={worksPage}
+                                        totalPages={worksTotalPages}
+                                        totalItems={works.length}
+                                        perPage={worksPerPage}
+                                        onPageChange={setWorksPage}
+                                        onPerPageChange={handleWorksPerPageChange}
+                                    />
+                                </>
                             )}
                         </section>
                     )}
@@ -230,13 +263,22 @@ export function Profile() {
                                     <span>Posts que você salvar aparecerão aqui.</span>
                                 </div>
                             ) : (
-                                <div className="profile-works__grid">
-                                    {savedWorks.map((w) => <WorkCard key={w.id} w={w} showUnsave />)}
-                                </div>
+                                <>
+                                    <div className="profile-works__grid">
+                                        {paginatedSavedWorks.map((w) => <WorkCard key={w.id} w={w} showUnsave />)}
+                                    </div>
+                                    <Pagination
+                                        currentPage={savedPage}
+                                        totalPages={savedTotalPages}
+                                        totalItems={savedWorks.length}
+                                        perPage={savedPerPage}
+                                        onPageChange={setSavedPage}
+                                        onPerPageChange={handleSavedPerPageChange}
+                                    />
+                                </>
                             )}
                         </section>
                     )}
-
                     {activeTab === 'editar' && (
                         <section className="profile-edit">
                             <form className="profile-form" onSubmit={handleSave}>
