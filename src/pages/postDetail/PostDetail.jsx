@@ -228,9 +228,9 @@ function resolveReplyBadge(reply, isBookClub, isAdmin, isCurador) {
         return { label: 'ADMIN', className: 'reply-badge--admin', title: 'Administrador' };
     }
     if (replyIsCurador) {
-        return { label: 'CURADOR', className: 'reply-badge--red', title: 'Curador' };
+        return { label: 'CURADOR', className: 'reply-badge--curador', title: 'Curador' };
     }
-    return { label: 'STAFF', className: 'reply-badge--admin', title: 'Staff' };
+    return { label: 'AUTOR', className: 'reply-badge--autor', title: 'Autor do post' };
 }
 
 

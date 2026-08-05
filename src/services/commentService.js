@@ -39,7 +39,14 @@ export async function unlikeComment(workId, commentId) {
 export async function getReplies(workId, commentId) {
     try {
         const response = await api.get(`/work/${workId}/comments/${commentId}/reply`);
-        return response.data?.content?.[0] ?? response.data ?? null;
+        const data = response.data;
+
+        // O endpoint retorna o objeto da resposta diretamente (não paginado).
+        // "content" aqui é o TEXTO da resposta (string), não uma lista de itens.
+        // Se não houver "content" (texto) válido, consideramos que não há resposta.
+        if (!data || !data.content) return null;
+
+        return data;
     } catch {
         return null;
     }
