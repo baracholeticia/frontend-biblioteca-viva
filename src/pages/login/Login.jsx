@@ -91,6 +91,12 @@ export function Login() {
                 />
               </div>
 
+              <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+                <Link to="/esqueceu-senha" style={{ fontSize: '13px', color: '#d62828', textDecoration: 'none', fontWeight: '600' }}>
+                  Esqueceu sua senha?
+                </Link>
+              </div>
+
               <button type="submit" className="auth-btn" disabled={loading}>
                 {loading ? 'ENTRANDO...' : 'ENTRAR'}
               </button>
