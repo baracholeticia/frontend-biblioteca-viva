@@ -35,3 +35,18 @@ export function isLoggedIn() {
 export function getUserRole() {
     return localStorage.getItem('userRole') || '';
 }
+
+export async function requestPasswordReset(email) {
+    const response = await api.post('/auth/password-reset/request', { email });
+    return response.data;
+}
+
+export async function verifyPasswordResetCode(email, code) {
+    const response = await api.post('/auth/password-reset/verify', { email, code });
+    return response.data; // Retorna { resetToken, expiresInSeconds }
+}
+
+export async function confirmPasswordReset(resetToken, newPassword) {
+    const response = await api.post('/auth/password-reset/confirm', { resetToken, newPassword });
+    return response.data;
+}
