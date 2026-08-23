@@ -258,6 +258,8 @@ export function AdminPosts() {
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(initialForm);
+  const [imageFile, setImageFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
   const [loading, setLoading] = useState(true);
@@ -271,6 +273,7 @@ export function AdminPosts() {
   const { showToast } = useToast();
 
   const urlDebounceRef = useRef(null);
+  const fileInputRef = useRef(null); 
 
   const toggleExpand = (id) => setExpandedId(prev => prev === id ? null : id);
 
@@ -324,6 +327,24 @@ export function AdminPosts() {
     }, 800);
   };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setImageFile(e.dataTransfer.files[0]);
+    }
+  };
+
   let filtered = posts.filter(p => {
     const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase()) ||
         p.author?.toLowerCase().includes(search.toLowerCase());
@@ -346,6 +367,9 @@ export function AdminPosts() {
   
   const startEdit = async (post) => {
     setCreating(false);
+    setImageFile(null); 
+    setIsDragging(false);
+    if(fileInputRef.current) fileInputRef.current.value = '';
 
     if (post._isBookClub) {
       setEditing(post.id);
@@ -379,7 +403,14 @@ export function AdminPosts() {
     }
   };
 
-  const startCreate = () => { setCreating(true); setEditing(null); setForm(initialForm); };
+  const startCreate = () => { 
+    setCreating(true); 
+    setEditing(null); 
+    setForm(initialForm); 
+    setImageFile(null); 
+    setIsDragging(false); 
+    if(fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -408,16 +439,13 @@ export function AdminPosts() {
         studentClass: form.studentClass || 'Não informado',
         ...(matchedUser ? { authorEmail: matchedUser.email } : { authorName: form.author }),
       };
+      
       let payload = {};
       switch (form.type) {
         case 'Essay':
           payload = {
-            ...basePayload,
-            content: form.content,
-            rate: Number(form.rate),
-            theme: form.theme,
-            themeDescription: form.themeDescription,
-            feedback: form.feedback,
+            ...basePayload, content: form.content, rate: Number(form.rate),
+            theme: form.theme, themeDescription: form.themeDescription, feedback: form.feedback,
           };
           break;
         case 'Cordel':
@@ -439,14 +467,20 @@ export function AdminPosts() {
           break;
         case 'Art':
         case 'Infographic':
-          payload = { ...basePayload, url: form.url };
+          payload = { ...basePayload, url: form.url }; 
           break;
         default:
           payload = { ...basePayload };
       }
       const endpointType = typeEndpoints[form.type];
-      if (creating) { await createWork(endpointType, payload); showToast("Criado!", "success"); }
-      else { await updateWork(endpointType, editing, payload); showToast("Atualizado!", "success"); }
+      
+      if (creating) { 
+        await createWork(endpointType, payload, imageFile); 
+        showToast("Criado!", "success"); 
+      } else { 
+        await updateWork(endpointType, editing, payload, imageFile); 
+        showToast("Atualizado!", "success"); 
+      }
       setCreating(false); setEditing(null); fetchPosts();
     } catch (error) {
       console.error(error);
@@ -572,14 +606,79 @@ export function AdminPosts() {
                       </div>
                   )}
 
-                  {/* URL */}
-                  {['Art', 'Infographic', 'Multimedia', 'LibraLiterature'].includes(form.type) && (
+                  {/* URL (Para Multimedia e Libras) */}
+                  {['Multimedia', 'LibraLiterature'].includes(form.type) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-                        <label style={labelStyle}>URL (Imagem/Youtube)</label>
-                        <input style={inputStyle} value={form.url} onChange={e => handleUrlChange(e.target.value)} placeholder="Cole o link do YouTube..." />
-                        {fetchingDuration && ['Multimedia', 'LibraLiterature'].includes(form.type) && (
-                            <span style={{ fontSize: 12, color: '#6b778c', marginTop: 4 }}>⏳ Buscando duração no YouTube...</span>
-                        )}
+                          <label style={labelStyle}>URL do Youtube</label>
+                          <input style={inputStyle} value={form.url} onChange={e => handleUrlChange(e.target.value)} placeholder="Cole o link do YouTube..." />
+                          {fetchingDuration && (
+                              <span style={{ fontSize: 12, color: '#6b778c', marginTop: 4 }}>⏳ Buscando duração no YouTube...</span>
+                          )}
+                      </div>
+                  )}
+
+                  {/* Upload Direto: Arrastar e Soltar (Para Artes e Infográficos) */}
+                  {['Art', 'Infographic'].includes(form.type) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                          <label style={labelStyle}>Upload de Imagem</label>
+                          
+                          <input 
+                              type="file" 
+                              ref={fileInputRef}
+                              style={{ display: 'none' }} 
+                              accept="image/*" 
+                              onChange={e => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                  setImageFile(e.target.files[0]);
+                                }
+                              }} 
+                          />
+
+                          {(imageFile || form.url) ? (
+                              <div className="image-preview-container">
+                                  <img 
+                                      src={imageFile ? URL.createObjectURL(imageFile) : form.url} 
+                                      alt="Preview" 
+                                      className="image-preview" 
+                                  />
+                                  <div className="image-preview-actions">
+                                      <button 
+                                          type="button" 
+                                          className="btn-replace" 
+                                          onClick={() => fileInputRef.current?.click()}
+                                      >
+                                          <IconPencil size={14} /> Substituir
+                                      </button>
+                                      <button 
+                                          type="button" 
+                                          className="btn-remove-image" 
+                                          onClick={() => {
+                                              setImageFile(null);
+                                              setForm({ ...form, url: '' }); // Limpa a URL existente se houver
+                                              if (fileInputRef.current) fileInputRef.current.value = '';
+                                          }}
+                                      >
+                                          <IconTrash size={14} /> Remover
+                                      </button>
+                                  </div>
+                              </div>
+                          ) : (
+                              <div 
+                                  className={`drag-drop-zone ${isDragging ? 'active' : ''}`}
+                                  onDragOver={handleDragOver}
+                                  onDragLeave={handleDragLeave}
+                                  onDrop={handleDrop}
+                                  onClick={() => fileInputRef.current?.click()}
+                              >
+                                  <svg className="drag-drop-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                      <polyline points="17 8 12 3 7 8"></polyline>
+                                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                                  </svg>
+                                  <p className="drag-drop-text">Clique ou arraste a imagem para esta área</p>
+                                  <p className="drag-drop-subtext">Formatos aceitos: .JPG, .PNG, .WEBP</p>
+                              </div>
+                          )}
                       </div>
                   )}
 

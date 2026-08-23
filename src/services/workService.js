@@ -16,12 +16,30 @@ export async function getWorkById(id) {
     return response.data;
 }
 
-export async function createWork(type, data) {
+export async function createWork(type, data, imageFile = null) {
+    if (['arts', 'infographics'].includes(type) && imageFile) {
+        const formData = new FormData();
+        formData.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+        formData.append('image', imageFile);
+        
+        const response = await api.post(`/work/${type}`, formData);
+        return response.data;
+    }
+
     const response = await api.post(`/work/${type}`, data);
     return response.data;
 }
 
-export async function updateWork(type, id, data) {
+export async function updateWork(type, id, data, imageFile = null) {
+    if (['arts', 'infographics'].includes(type)) {
+        const formData = new FormData();
+        formData.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+        if (imageFile) formData.append('image', imageFile);
+        
+        const response = await api.put(`/work/${type}/${id}`, formData);
+        return response.data;
+    }
+
     const response = await api.put(`/work/${type}/${id}`, data);
     return response.data;
 }
