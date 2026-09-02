@@ -6,16 +6,6 @@ import { login } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
 import './Login.css';
 
-function getRoleFromToken(token) {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.role || payload.authorities || payload.roles || '';
-  } catch (error) {
-    console.error("Erro ao decodificar token:", error);
-    return '';
-  }
-}
-
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,11 +21,11 @@ export function Login() {
       const response = await login(email, password);
       showToast('Bem-vindo à Biblioteca Viva!', 'success');
 
-      const role = getRoleFromToken(response.token);
+      const role = response.role;
 
-      if (email === 'admin@admin.com' || role.includes('ADMIN')) {
+      if (role === 'ADMIN') {
         navigate('/admin');
-      } else if (role.includes('CURADOR')) {
+      } else if (role === 'CURADOR') {
         navigate('/curadoria/posts');
       } else {
         navigate('/');
