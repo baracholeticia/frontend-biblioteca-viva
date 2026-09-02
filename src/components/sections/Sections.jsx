@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { categories as initialCategories } from '../../data/categories';
 import { getHomeData } from '../../services/workService';
 // Importe a função que busca a lista geral de clubes de leitura
-import { getAllBookClubs } from '../../services/bookclubService'; 
+import { getAllBookClubs } from '../../services/bookClubService'; 
 import './Sections.css';
 
 export function Sections() {

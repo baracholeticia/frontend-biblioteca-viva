@@ -5,7 +5,7 @@ import { isLoggedIn, getUserRole } from './services/authService';
 import { Home } from './pages/home/Home';
 import { Category } from './pages/category/Category';
 import { Login } from './pages/login/Login';
-import { ForgotPassword } from './pages/login/ForgotPassword';
+import { ForgotPassword } from './pages/login/Forgotpassword';
 import { Register } from './pages/register/Register';
 import { PostDetail } from './pages/postDetail/PostDetail';
 import { Profile } from './pages/profile/Profile';
