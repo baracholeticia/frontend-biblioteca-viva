@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-// Importe a função de logout do seu authService
-import { logout } from '../../services/authService';
+import { logout, isLoggedIn, getUserRole } from '../../services/authService';
 import {
   IconBook, IconUser, IconMenu, IconClose,
   IconAward, IconScrollText, IconDoc, IconFeather,
@@ -30,22 +29,11 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const token = localStorage.getItem('token');
-  const isLoggedIn = !!token;
+  const logged = isLoggedIn();
+  const role = getUserRole();
 
-  const role = useMemo(() => {
-    if (!token) return '';
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.role || payload.roles || '';
-    // eslint-disable-next-line no-unused-vars
-    } catch (e) {
-      return '';
-    }
-  }, [token]);
-
-  const isAdmin = role.includes('ADMIN');
-  const isCurador = role.includes('CURADOR');
+  const isAdmin = role === 'ADMIN';
+  const isCurador = role === 'CURADOR';
 
   const activeSection = location.pathname.startsWith('/categoria/')
       ? location.pathname.split('/')[2]
@@ -57,12 +45,12 @@ export function Header() {
   };
 
   const handleProfileClick = () => {
-    if (!isLoggedIn) {
+    if (!logged) {
       navigate('/login');
     } else if (isAdmin) {
       navigate('/admin');
     } else if (isCurador) {
-      navigate('/curador');
+      navigate('/curadoria/posts');
     } else {
       navigate('/perfil');
     }
@@ -98,18 +86,18 @@ export function Header() {
               )}
 
               {isCurador && (
-                  <button className="desktop-admin-btn" onClick={() => navigate('/curador')}>
+                  <button className="desktop-admin-btn" onClick={() => navigate('/curadoria/posts')}>
                     Curador
                   </button>
               )}
 
               {!isAdmin && !isCurador && (
                   <button
-                      className={`icon-btn ${isLoggedIn ? 'icon-btn--logged' : ''}`}
+                      className={`icon-btn ${logged ? 'icon-btn--logged' : ''}`}
                       onClick={handleProfileClick}
                   >
                     <IconUser size={20} />
-                    {isLoggedIn && <span className="icon-btn__dot" />}
+                    {logged && <span className="icon-btn__dot" />}
                   </button>
               )}
 
@@ -149,7 +137,7 @@ export function Header() {
                 <li className="mobile-admin-item">
                   <button
                       className="menu-drawer__item"
-                      onClick={() => { navigate('/curador'); setMenuOpen(false); }}
+                      onClick={() => { navigate('/curadoria/posts'); setMenuOpen(false); }}
                       style={{ color: '#f0a500' }}
                   >
                     <span className="menu-drawer__item-icon" style={{ color: '#f0a500' }}><IconDashboard size={20} /></span>
@@ -172,8 +160,7 @@ export function Header() {
                 </li>
             ))}
 
-            {/* SEÇÃO DO BOTÃO DE SAIR */}
-            {isLoggedIn && (
+            {logged && (
               <>
                 <div style={{ margin: '10px 28px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}></div>
                 <li>
