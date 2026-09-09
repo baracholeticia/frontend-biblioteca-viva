@@ -32,31 +32,28 @@ function AuthorInput({ value, onChange }) {
 const typeEndpoints = {
     'Essay': 'essays', 'Cordel': 'cordels', 'Tale': 'tales', 'ShortStory': 'short-stories',
     'Article': 'articles', 'Infographic': 'infographics', 'Art': 'arts',
-    'Multimedia': 'multimedias', 'LibraLiterature': 'libra-literatures', 'Poem': 'poems'
+    'Multimedia': 'multimedias', 'LibraLiterature': 'libra-literatures', 'Poem': 'poems',
+    'Other': 'others', 'News': 'news'
 };
 
 const categoryTranslations = {
     'Essay': 'Redação Nota 10', 'Cordel': 'Cordel', 'Tale': 'Conto', 'ShortStory': 'Crônica',
     'Article': 'Jornal da Escola', 'Infographic': 'Infográfico', 'Art': 'Arte',
     'Multimedia': 'Vídeo Autoral', 'LibraLiterature': 'Literatura em Libras', 'Poem': 'Poema',
-    'BookClub': 'Clube de Leitura'
+    'BookClub': 'Clube de Leitura', 'Other': 'Outras Produções', 'News': 'Notícias'
 };
 
 const initialForm = {
     type: 'Essay', title: '', author: '', studentClass: '', description: '', content: '',
-    url: '', duration: '', genre: '', rhymeScheme: '', rate: 0,
+    url: '', imageUrl: '', duration: '', genre: '', rhymeScheme: '', rate: 0,
     theme: 'Geral', themeDescription: 'Tema Geral', feedback: 'Sem feedback',
-    // BookClub-specific
     bookName: '', bookAuthor: '', bookSynopses: '', bookCoverUrl: '', date: '', location: ''
 };
 
 function convertToIsoDuration(timeStr) {
     if (!timeStr) return '';
     if (timeStr.startsWith('PT')) return timeStr;
-    if (timeStr.includes(':')) {
-        const [minutos, segundos] = timeStr.split(':');
-        return `PT${parseInt(minutos || 0, 10)}M${parseInt(segundos || 0, 10)}S`;
-    }
+    if (timeStr.includes(':')) { const [minutos, segundos] = timeStr.split(':'); return `PT${parseInt(minutos || 0, 10)}M${parseInt(segundos || 0, 10)}S`; }
     return `PT${parseInt(timeStr || 0, 10)}M`;
 }
 
@@ -77,7 +74,6 @@ function convertFromIsoDuration(durationInfo) {
     return durationInfo;
 }
 
-// ─── YouTube helpers ───────────────────────────────────────────────────────────
 function extractYoutubeId(url) {
     const match = url.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     return match ? match[1] : null;
@@ -87,27 +83,19 @@ async function fetchYoutubeDuration(url) {
     const videoId = extractYoutubeId(url);
     if (!videoId || !YOUTUBE_API_KEY) return null;
     try {
-        const res = await fetch(
-            `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`
-        );
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`);
         const data = await res.json();
         const iso = data?.items?.[0]?.contentDetails?.duration;
         return iso ? convertFromIsoDuration(iso) : null;
-    } catch {
-        return null;
-    }
+    } catch { return null; }
 }
-// ──────────────────────────────────────────────────────────────────────────────
 
 function normalizeBookClub(bc) {
-    return {
-        ...bc,
-        type: 'BookClub',
-        title: bc.bookName,
-        author: bc.organizerName,
-        publicationDate: bc.date,
-        _isBookClub: true,
-    };
+    return { ...bc, type: 'BookClub', title: bc.bookName, author: bc.organizerName, publicationDate: bc.date, _isBookClub: true };
+}
+
+function normalizeNews(n) {
+    return { ...n, type: 'News', title: n.title, author: n.authorName, publicationDate: n.createdAt, description: n.content?.substring(0, 100) + '...', url: n.imageUrl, _isNews: true };
 }
 
 export function CuradorPosts() {
@@ -135,20 +123,17 @@ export function CuradorPosts() {
     const toggleExpand = (id) => setExpandedId(prev => prev === id ? null : id);
 
     const getViewPath = (post) =>
-        post._isBookClub ? `/clube-leitura/${post.id}` : `/post/${post.id}`;
+        post._isBookClub ? `/clube-leitura/${post.id}` : post._isNews ? `/noticias/${post.id}` : `/post/${post.id}`;
 
-    // ─── Busca works + bookclubs e mescla ─────────────────────────────────────
     const fetchPosts = useCallback(async () => {
         try {
             setLoading(true);
-            const [worksData, bookClubsData] = await Promise.all([
+            const [worksData, bookClubsData, newsData] = await Promise.all([
                 getAllWorks(),
-                getAllBookClubs().then(res => {
-                    const list = Array.isArray(res) ? res : (res?.content ?? []);
-                    return list.map(normalizeBookClub);
-                }).catch(() => [])
+                getAllBookClubs().then(res => { const list = Array.isArray(res) ? res : (res?.content ?? []); return list.map(normalizeBookClub); }).catch(() => []),
+                getAllWorks('News').then(res => { const list = Array.isArray(res) ? res : (res?.content ?? []); return list.map(normalizeNews); }).catch(() => [])
             ]);
-            setPosts([...worksData, ...bookClubsData]);
+            setPosts([...worksData, ...bookClubsData, ...newsData]);
         } catch (error) {
             console.error(error);
             showToast('Erro ao carregar posts.', 'error');
@@ -156,11 +141,9 @@ export function CuradorPosts() {
             setLoading(false);
         }
     }, [showToast]);
-    // ──────────────────────────────────────────────────────────────────────────
 
     useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-    // ─── URL change handler with YouTube auto-duration ─────────────────────────
     const handleUrlChange = (url) => {
         setForm(prev => ({ ...prev, url }));
         if (!['Multimedia', 'LibraLiterature'].includes(form.type)) return;
@@ -178,25 +161,13 @@ export function CuradorPosts() {
             }
         }, 800);
     };
-    // ──────────────────────────────────────────────────────────────────────────
 
-    // Drag and Drop Handlers
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
+    const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
     const handleDrop = (e) => {
         e.preventDefault();
         setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            setImageFile(e.dataTransfer.files[0]);
-        }
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) setImageFile(e.dataTransfer.files[0]);
     };
 
     let filtered = posts.filter(p => {
@@ -223,50 +194,38 @@ export function CuradorPosts() {
         if(fileInputRef.current) fileInputRef.current.value = '';
         
         if (post._isBookClub) {
-            setForm({
-                ...initialForm,
-                type: 'BookClub',
-                bookName: post.bookName || '',
-                bookAuthor: post.bookAuthor || '',
-                bookSynopses: post.bookSynopses || '',
-                bookCoverUrl: post.bookCoverUrl || '',
-                date: post.date ? post.date.slice(0, 16) : '',
-                location: post.location || '',
-            });
+            setForm({ ...initialForm, type: 'BookClub', bookName: post.bookName || '', bookAuthor: post.bookAuthor || '', bookSynopses: post.bookSynopses || '', bookCoverUrl: post.bookCoverUrl || '', date: post.date ? post.date.slice(0, 16) : '', location: post.location || '' });
+        } else if (post._isNews) {
+            setForm({ ...initialForm, type: 'News', title: post.title || '', content: post.content || '', url: post.url || '' });
         } else {
             const postData = { ...initialForm, ...post };
-            if (['Multimedia', 'LibraLiterature'].includes(post.type)) {
-                postData.duration = convertFromIsoDuration(post.duration);
-            }
+            if (['Multimedia', 'LibraLiterature'].includes(post.type)) postData.duration = convertFromIsoDuration(post.duration);
             setForm(postData);
         }
     };
 
-    const startCreate = () => { 
-        setCreating(true); 
-        setEditing(null); 
-        setForm(initialForm); 
-        setImageFile(null); 
-        setIsDragging(false); 
-        if(fileInputRef.current) fileInputRef.current.value = '';
-    };
+    const startCreate = () => { setCreating(true); setEditing(null); setForm(initialForm); setImageFile(null); setIsDragging(false); if(fileInputRef.current) fileInputRef.current.value = ''; };
 
-    // ─── Save ─────────────────────────────────────────────────────────────────
     const handleSave = async () => {
         if (saving) return;
         setSaving(true);
         try {
             if (form.type === 'BookClub') {
                 const payload = {
-                    bookName: form.bookName,
-                    bookAuthor: form.bookAuthor,
-                    bookSynopses: form.bookSynopses,
-                    bookCoverUrl: form.bookCoverUrl,
+                    bookName: form.bookName, bookAuthor: form.bookAuthor, bookSynopses: form.bookSynopses,
+                    bookCoverUrl: form.bookCoverUrl, location: form.location,
                     date: form.date ? new Date(form.date).toISOString() : new Date().toISOString(),
-                    location: form.location,
                 };
                 if (creating) { await createBookClub(payload); showToast('Clube criado!', 'success'); }
                 else { await updateBookClub(editing, payload); showToast('Clube atualizado!', 'success'); }
+                setCreating(false); setEditing(null); fetchPosts();
+                return;
+            }
+
+            if (form.type === 'News') {
+                const payload = { title: form.title, content: form.content };
+                if (creating) { await createWork('news', payload, imageFile); showToast('Notícia criada!', 'success'); }
+                else { await updateWork('news', editing, payload, imageFile); showToast('Notícia atualizada!', 'success'); }
                 setCreating(false); setEditing(null); fetchPosts();
                 return;
             }
@@ -277,57 +236,58 @@ export function CuradorPosts() {
                 try {
                     const user = await getUserByEmail(form.author);
                     if (user?.email) authorPayload = { authorEmail: user.email };
-                } catch { /* não encontrado, usa como nome */ }
+                } catch { /* ignora se não existir */ }
             }
 
             const basePayload = {
-                title: form.title, studentClass: form.studentClass,
+                title: form.title, studentClass: form.studentClass || 'Não informado',
                 description: form.description, publicationDate: new Date().toISOString(),
                 ...authorPayload,
             };
+            
             let payload = {};
             switch (form.type) {
                 case 'Essay': payload = { ...basePayload, content: form.content, rate: Number(form.rate), theme: form.theme, themeDescription: form.themeDescription, feedback: form.feedback }; break;
                 case 'Cordel': payload = { ...basePayload, content: form.content, rhymeScheme: form.rhymeScheme }; break;
                 case 'Tale': payload = { ...basePayload, content: form.content, genre: form.genre }; break;
                 case 'ShortStory': case 'Article': payload = { ...basePayload, content: form.content }; break;
+                case 'Other': 
+                    payload = { ...basePayload, content: form.content };
+                    payload.url = (form.url && form.url.trim() !== '') ? form.url.trim() : null;
+                    payload.imageUrl = (form.imageUrl && form.imageUrl.trim() !== '') ? form.imageUrl.trim() : null;
+                    break;
                 case 'Poem': payload = { ...basePayload, content: form.content }; break;
                 case 'Multimedia': case 'LibraLiterature': payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) }; break;
                 case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break; 
                 default: payload = { ...basePayload };
             }
+            
             const endpointType = typeEndpoints[form.type];
             if (creating) { await createWork(endpointType, payload, imageFile); showToast('Post criado!', 'success'); }
             else { await updateWork(endpointType, editing, payload, imageFile); showToast('Post atualizado!', 'success'); }
             setCreating(false); setEditing(null); fetchPosts();
         } catch (error) {
-            console.error(error);
-            if (error.response?.status === 409) {
-                showToast('Já existe um clube de leitura ativo. Edite ou exclua o atual antes de criar um novo.', 'error');
-            } else {
-                showToast('Erro ao salvar post.', 'error');
-            }
+            if (error.response?.status === 409) showToast('Já existe um clube de leitura ativo. Edite ou exclua o atual antes de criar um novo.', 'error');
+            else showToast('Erro ao salvar post.', 'error');
         } finally {
             setSaving(false);
         }
     };
-    // ──────────────────────────────────────────────────────────────────────────
 
     const handleDelete = async (post) => {
         if (window.confirm('Excluir este item?')) {
             try {
-                if (post._isBookClub) { await deleteBookClub(post.id); }
-                else { await deleteWork(post.id); }
+                if (post._isBookClub) await deleteBookClub(post.id);
+                else if (post._isNews) await deleteWork(post.id, 'news');
+                else await deleteWork(post.id);
                 showToast('Excluído.', 'success');
                 fetchPosts();
-            } catch (error) {
-                console.error(error);
-                showToast('Erro ao excluir.', 'error');
-            }
+            } catch (error) { showToast('Erro ao excluir.', 'error'); }
         }
     };
 
     const isBookClub = form.type === 'BookClub';
+    const isNews = form.type === 'News';
 
     return (
         <CuradorLayout>
@@ -348,17 +308,15 @@ export function CuradorPosts() {
                     </h2>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
 
-                        {/* Tipo */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             <label style={labelStyle}>Tipo (Categoria)</label>
                             <select style={inputStyle} value={form.type} onChange={e => setForm({ ...initialForm, type: e.target.value })} disabled={!creating}>
-                                {[...Object.keys(typeEndpoints), 'BookClub'].map(k => (
+                                {['News', ...Object.keys(typeEndpoints), 'BookClub'].map(k => (
                                     <option key={k} value={k}>{categoryTranslations[k] || k}</option>
                                 ))}
                             </select>
                         </div>
 
-                        {/* ── Campos BookClub ── */}
                         {isBookClub && (<>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label style={labelStyle}>Nome do Livro</label>
@@ -389,8 +347,14 @@ export function CuradorPosts() {
                             </div>
                         </>)}
 
-                        {/* ── Campos Works normais ── */}
-                        {!isBookClub && (<>
+                        {isNews && (<>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                                <label style={labelStyle}>Título da Notícia</label>
+                                <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+                            </div>
+                        </>)}
+
+                        {!isBookClub && !isNews && (<>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label style={labelStyle}>Título</label>
                                 <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
@@ -407,92 +371,86 @@ export function CuradorPosts() {
                                 <label style={labelStyle}>Descrição</label>
                                 <input style={inputStyle} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                             </div>
-                            {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(form.type) && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-                                    <label style={labelStyle}>Conteúdo</label>
-                                    <textarea style={{ ...inputStyle, minHeight: 180 }} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
-                                </div>
-                            )}
+                        </>)}
 
-                            {/* URL (Para Multimedia e Libras) */}
-                            {['Multimedia', 'LibraLiterature'].includes(form.type) && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-                                    <label style={labelStyle}>URL do Youtube</label>
-                                    <input style={inputStyle} value={form.url} onChange={e => handleUrlChange(e.target.value)} placeholder="Cole o link do YouTube..." />
-                                    {fetchingDuration && (
-                                        <span style={{ fontSize: 12, color: '#6b778c', marginTop: 4 }}>⏳ Buscando duração no YouTube...</span>
-                                    )}
-                                </div>
-                            )}
+                        {/* Conteúdo textual */}
+                        {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem', 'Other', 'News'].includes(form.type) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                                <label style={labelStyle}>Conteúdo</label>
+                                <textarea style={{ ...inputStyle, minHeight: 180 }} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
+                            </div>
+                        )}
 
-                            {/* Upload Direto: Arrastar e Soltar (Para Artes e Infográficos) */}
-                            {['Art', 'Infographic'].includes(form.type) && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-                                    <label style={labelStyle}>Upload de Imagem</label>
-                                    
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef}
-                                        style={{ display: 'none' }} 
-                                        accept="image/*" 
-                                        onChange={e => {
-                                            if (e.target.files && e.target.files.length > 0) {
-                                                setImageFile(e.target.files[0]);
-                                            }
-                                        }} 
-                                    />
+                        {/* Campos específicos para Outras Produções */}
+                        {form.type === 'Other' && (<>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <label style={labelStyle}>URL Externa (Opcional)</label>
+                                <input style={inputStyle} value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://..." />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <label style={labelStyle}>URL da Imagem / Capa (Opcional)</label>
+                                <input style={inputStyle} value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://..." />
+                                {form.imageUrl && (
+                                    <img src={form.imageUrl} alt="Preview" style={{ marginTop: 8, height: 100, width: 140, objectFit: 'cover', borderRadius: 6 }} onError={e => e.target.style.display = 'none'} />
+                                )}
+                            </div>
+                        </>)}
 
-                                    {(imageFile || form.url) ? (
-                                        <div className="image-preview-container">
-                                            <img 
-                                                src={imageFile ? URL.createObjectURL(imageFile) : form.url} 
-                                                alt="Preview" 
-                                                className="image-preview" 
-                                            />
-                                            <div className="image-preview-actions">
-                                                <button 
-                                                    type="button" 
-                                                    className="btn-replace" 
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                >
-                                                    <IconPencil size={14} /> Substituir
-                                                </button>
-                                                <button 
-                                                    type="button" 
-                                                    className="btn-remove-image" 
-                                                    onClick={() => {
-                                                        setImageFile(null);
-                                                        setForm({ ...form, url: '' }); // Limpa a URL existente se houver
-                                                        if (fileInputRef.current) fileInputRef.current.value = '';
-                                                    }}
-                                                >
-                                                    <IconTrash size={14} /> Remover
-                                                </button>
-                                            </div>
+                        {/* URL (Para Multimedia e Libras) */}
+                        {['Multimedia', 'LibraLiterature'].includes(form.type) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                                <label style={labelStyle}>URL do Youtube</label>
+                                <input style={inputStyle} value={form.url} onChange={e => handleUrlChange(e.target.value)} placeholder="Cole o link do YouTube..." />
+                                {fetchingDuration && (
+                                    <span style={{ fontSize: 12, color: '#6b778c', marginTop: 4 }}>⏳ Buscando duração no YouTube...</span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Upload Direto: Arrastar e Soltar */}
+                        {['Art', 'Infographic', 'News'].includes(form.type) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                                <label style={labelStyle}>Upload de Imagem (Capa)</label>
+                                
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }} 
+                                    accept="image/*" 
+                                    onChange={e => {
+                                        if (e.target.files && e.target.files.length > 0) {
+                                            setImageFile(e.target.files[0]);
+                                        }
+                                    }} 
+                                />
+
+                                {(imageFile || form.url) ? (
+                                    <div className="image-preview-container">
+                                        <img 
+                                            src={imageFile ? URL.createObjectURL(imageFile) : form.url} 
+                                            alt="Preview" 
+                                            className="image-preview" 
+                                        />
+                                        <div className="image-preview-actions">
+                                            <button type="button" className="btn-replace" onClick={() => fileInputRef.current?.click()}><IconPencil size={14} /> Substituir</button>
+                                            <button type="button" className="btn-remove-image" onClick={() => { setImageFile(null); setForm({ ...form, url: '' }); if (fileInputRef.current) fileInputRef.current.value = ''; }}><IconTrash size={14} /> Remover</button>
                                         </div>
-                                    ) : (
-                                        <div 
-                                            className={`drag-drop-zone ${isDragging ? 'active' : ''}`}
-                                            onDragOver={handleDragOver}
-                                            onDragLeave={handleDragLeave}
-                                            onDrop={handleDrop}
-                                            onClick={() => fileInputRef.current?.click()}
-                                        >
-                                            <svg className="drag-drop-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                <polyline points="17 8 12 3 7 8"></polyline>
-                                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                                            </svg>
-                                            <p className="drag-drop-text">Clique ou arraste a imagem para esta área</p>
-                                            <p className="drag-drop-subtext">Formatos aceitos: .JPG, .PNG, .WEBP</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                ) : (
+                                    <div className={`drag-drop-zone ${isDragging ? 'active' : ''}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
+                                        <svg className="drag-drop-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                        <p className="drag-drop-text">Clique ou arraste a imagem para esta área</p>
+                                        <p className="drag-drop-subtext">Formatos aceitos: .JPG, .PNG, .WEBP</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
+                        {/* Demais Campos Específicos */}
+                        {!isBookClub && !isNews && (<>
                             {['Multimedia', 'LibraLiterature'].includes(form.type) && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    <label style={labelStyle}>Duração (mm:ss) {fetchingDuration && <span style={{ marginLeft: 8, fontSize: 11, color: '#6b778c' }}>buscando...</span>}</label>
+                                    <label style={labelStyle}>Duração (mm:ss)</label>
                                     <input style={inputStyle} value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="Ex: 03:30" />
                                 </div>
                             )}
@@ -562,9 +520,9 @@ export function CuradorPosts() {
                                 </div>
                                 {expandedId === post.id && (
                                     <div className="mobile-expanded-content">
-                                        <p><strong>Autor:</strong> {post.author}</p>
+                                        <p><strong>Autor:</strong> {post.author || '—'}</p>
                                         <p><strong>Categoria:</strong> <span className="badge badge-active" style={{ fontSize: 11 }}>{categoryTranslations[post.type] || post.type}</span></p>
-                                        {!post._isBookClub && (
+                                        {!post._isBookClub && !post._isNews && (
                                             <div style={{ display: 'flex', gap: 16, marginTop: 8, marginBottom: 8 }}>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#d62828' }}><IconHeart size={14} color="#d62828" /> {post.likeCount || 0}</span>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#6b778c' }}><IconMessage size={14} /> {post.commentCount || 0}</span>
@@ -578,13 +536,13 @@ export function CuradorPosts() {
                                     </div>
                                 )}
                             </td>
-                            <td className="desktop-cell">{post.author}</td>
+                            <td className="desktop-cell">{post.author || '—'}</td>
                             <td className="desktop-cell"><span className="badge badge-active" style={{ fontSize: 11 }}>{categoryTranslations[post.type] || post.type}</span></td>
                             <td className="desktop-cell">
-                                {post._isBookClub ? <span style={{ color: '#c0c7d0', fontSize: 12 }}>—</span> : <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconHeart size={14} color="#d62828" /> {post.likeCount || 0}</div>}
+                                {post._isBookClub || post._isNews ? <span style={{ color: '#c0c7d0', fontSize: 12 }}>—</span> : <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconHeart size={14} color="#d62828" /> {post.likeCount || 0}</div>}
                             </td>
                             <td className="desktop-cell">
-                                {post._isBookClub ? <span style={{ color: '#c0c7d0', fontSize: 12 }}>—</span> : <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconMessage size={14} color="#6b778c" /> {post.commentCount || 0}</div>}
+                                {post._isBookClub || post._isNews ? <span style={{ color: '#c0c7d0', fontSize: 12 }}>—</span> : <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconMessage size={14} color="#6b778c" /> {post.commentCount || 0}</div>}
                             </td>
                             <td className="desktop-cell">
                                 <div className="admin-table-actions">
