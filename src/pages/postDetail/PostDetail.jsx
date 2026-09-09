@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
-import { Pagination } from '../../components/pagination/Pagination'; // ajuste o caminho conforme a localização real do arquivo
+import { Pagination } from '../../components/pagination/Pagination';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
 import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
 import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub, getBookClubParticipants } from '../../services/bookclubService';
@@ -22,7 +22,9 @@ const categoryTranslations = {
     'Multimedia': 'Vídeos Autorais',
     'LibraLiterature': 'Literatura em Libras',
     'Poem': 'Poemas',
-    'BookClub': 'Livro Analisado'
+    'BookClub': 'Livro Analisado',
+    'Other': 'Outras Produções',
+    'News': 'Notícias'
 };
 
 const getYouTubeId = (url) => {
@@ -34,7 +36,8 @@ const getYouTubeId = (url) => {
 const typeEndpoints = {
     'Essay': 'essays', 'Cordel': 'cordels', 'Tale': 'tales', 'ShortStory': 'short-stories',
     'Article': 'articles', 'Infographic': 'infographics', 'Art': 'arts',
-    'Multimedia': 'multimedias', 'LibraLiterature': 'libra-literatures', 'Poem': 'poems'
+    'Multimedia': 'multimedias', 'LibraLiterature': 'libra-literatures', 'Poem': 'poems',
+    'Other': 'others', 'News': 'news'
 };
 
 function getIsAdmin() {
@@ -102,13 +105,10 @@ function toggleSaved(postId) {
     return updated.includes(postId);
 }
 
-
 function BookClubPresencaPanel({ participants}) {
     const [search, setSearch] = useState('');
 
     const allParticipants = useMemo(() => {
-        console.log('[BookClub] participants recebido:', participants);
-
         if (Array.isArray(participants)) {
             return participants.map(s => ({
                 name: s.name || s.fullName || s.full_name || s.username || s.email || String(s),
@@ -217,7 +217,6 @@ function BookClubPresencaPanel({ participants}) {
     );
 }
 
-
 function resolveReplyBadge(reply, isBookClub, isAdmin, isCurador) {
     if (isBookClub) {
         return { label: 'AUTOR', className: 'reply-badge--admin', title: 'Organizador do clube' };
@@ -232,7 +231,6 @@ function resolveReplyBadge(reply, isBookClub, isAdmin, isCurador) {
     }
     return { label: 'AUTOR', className: 'reply-badge--autor', title: 'Autor do post' };
 }
-
 
 export function PostDetail() {
     const { categoria, id } = useParams();
@@ -283,6 +281,7 @@ export function PostDetail() {
     const [isSavingComment, setIsSavingComment] = useState(false);
 
     const isBookClub = categoria === 'clube-leitura';
+    const isNews = categoria === 'noticias';
 
     const isOrganizerOfThisClub = useMemo(() => {
         if (!post || !isBookClub) return false;
@@ -332,12 +331,24 @@ export function PostDetail() {
                     if (isAdmin || isCurador) {
                         try {
                             const p = await getBookClubParticipants(id);
-                            console.log('[BookClub] participantes brutos da API:', p);
                             setParticipants(p);
                         } catch (e) {
                             console.error('[BookClub] erro ao buscar participantes:', e);
                         }
                     }
+                } else if (isNews) {
+                    const n = await getWorkById(id, 'News');
+                    setPost({
+                        ...n,
+                        title: n.title,
+                        author: n.authorName,
+                        content: n.content,
+                        url: n.imageUrl,
+                        type: 'News',
+                        publicationDate: n.createdAt || n.updatedAt
+                    });
+                    setComments([]); 
+                    setLikes(0);
                 } else {
                     let commentsData;
                     try { commentsData = await getComments(id); } catch { commentsData = []; }
@@ -365,7 +376,6 @@ export function PostDetail() {
                                 let r = null;
                                 try { r = await getReplies(id, c.id); } catch { r = null; }
                                 if (r && !Array.isArray(r)) {
-
                                     repliesMap[c.id] = {
                                         ...r,
                                         isAdmin: isAdmin,
@@ -387,7 +397,7 @@ export function PostDetail() {
             }
         }
         fetchData();
-    }, [id, isBookClub, isAdmin, isCurador]);
+    }, [id, isBookClub, isNews, isAdmin, isCurador]);
 
     const handleAdminDelete = async () => {
         if (!window.confirm('Tem certeza que deseja excluir este post?')) return;
@@ -395,6 +405,9 @@ export function PostDetail() {
             if (isBookClub) {
                 await deleteBookClub(id);
                 showToast('Clube excluído com sucesso.', 'success');
+            } else if (isNews) {
+                await deleteWork(id, 'news');
+                showToast('Notícia excluída com sucesso.', 'success');
             } else {
                 await deleteWork(id);
                 showToast('Post excluído com sucesso.', 'success');
@@ -409,6 +422,15 @@ export function PostDetail() {
     const handleAdminSave = async () => {
         setIsSaving(true);
         try {
+            if (isNews) {
+                await updateWork('news', id, { title: editForm.title, content: editForm.content }, null);
+                setPost(prev => ({ ...prev, ...editForm }));
+                setIsEditing(false);
+                showToast('Notícia atualizada com sucesso!', 'success');
+                setIsSaving(false);
+                return;
+            }
+
             const endpointType = typeEndpoints[post.type];
             const payload = {
                 title: editForm.title,
@@ -546,7 +568,6 @@ export function PostDetail() {
         return comments.length + repliesCount;
     }, [comments, replies]);
 
-    // --- Fatias paginadas de resenhas (clube do livro) e comentários (posts normais) ---
     const reviewsTotalPages = Math.max(1, Math.ceil(comments.length / reviewsPerPage));
     const paginatedReviews = useMemo(() => {
         const start = (reviewsPage - 1) * reviewsPerPage;
@@ -586,7 +607,6 @@ export function PostDetail() {
             showToast('Resposta enviada!', 'success');
         } catch (err) {
             if (err.response?.status === 409) {
-                // Já existe uma resposta — busca ela do servidor e exibe
                 try {
                     const existing = await getReplies(id, commentId);
                     if (existing) {
@@ -599,9 +619,7 @@ export function PostDetail() {
                             }
                         }));
                     }
-                } catch {
-                    // ignora
-                }
+                } catch { /* empty */ }
                 showToast('Esse comentário já possui uma resposta.', 'error');
             } else {
                 showToast('Erro ao enviar resposta. Tente novamente.', 'error');
@@ -762,25 +780,35 @@ export function PostDetail() {
                         <div className="admin-edit-panel">
                             <h3 className="admin-edit-panel__title">Editar Post</h3>
                             <div className="admin-edit-grid">
-                                <div className="admin-edit-field">
-                                    <label>Título</label>
-                                    <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
-                                </div>
-                                <div className="admin-edit-field">
-                                    <label>Autor</label>
-                                    <input value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))} />
-                                </div>
-                                <div className="admin-edit-field admin-edit-field--full">
-                                    <label>Descrição</label>
-                                    <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
-                                </div>
-                                {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(post.type) && (
+                                {!isNews && (
+                                    <>
+                                        <div className="admin-edit-field">
+                                            <label>Título</label>
+                                            <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+                                        </div>
+                                        <div className="admin-edit-field">
+                                            <label>Autor</label>
+                                            <input value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))} />
+                                        </div>
+                                        <div className="admin-edit-field admin-edit-field--full">
+                                            <label>Descrição</label>
+                                            <input value={editForm.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                                        </div>
+                                    </>
+                                )}
+                                {isNews && (
+                                    <div className="admin-edit-field admin-edit-field--full">
+                                        <label>Título</label>
+                                        <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+                                    </div>
+                                )}
+                                {['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem', 'Other', 'News'].includes(post.type) && (
                                     <div className="admin-edit-field admin-edit-field--full">
                                         <label>Conteúdo</label>
                                         <textarea rows={10} value={editForm.content} onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))} />
                                     </div>
                                 )}
-                                {['Art', 'Infographic', 'Multimedia', 'LibraLiterature'].includes(post.type) && (
+                                {['Art', 'Infographic', 'Multimedia', 'LibraLiterature', 'Other'].includes(post.type) && (
                                     <div className="admin-edit-field admin-edit-field--full">
                                         <label>URL (Imagem/YouTube)</label>
                                         <input value={editForm.url} onChange={e => setEditForm(f => ({ ...f, url: e.target.value }))} />
@@ -888,6 +916,12 @@ export function PostDetail() {
                                     em {formatDate(post.publicationDate)}
                                 </span>
                             </div>
+                        ) : isNews ? (
+                            <span className="post-meta">
+                                Publicado por{' '}
+                                <strong>{post.author || 'Administração'}</strong>{' '}
+                                em {formatDate(post.publicationDate)}
+                            </span>
                         ) : (
                             <span className="post-meta">
                                 Por{' '}
@@ -918,322 +952,324 @@ export function PostDetail() {
                     {post.content && <div className="post-body">{formatTextWithLineBreaks(post.content)}</div>}
                     {!post.content && post.description && <div className="post-body">{formatTextWithLineBreaks(post.description)}</div>}
 
-                    <div className="post-interactions">
-                        {!isBookClub && (
-                            <button
-                                className={`like-btn ${hasLiked ? 'liked' : ''}`}
-                                onClick={handleLike}
-                                disabled={isLiking}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                            >
-                                <IconHeart size={20} color={hasLiked ? '#d62828' : '#6b778c'} filled={hasLiked} />
-                                <span>{likes} <span className="interact-text">Curtidas</span></span>
-                            </button>
-                        )}
-                        <span className="btn-interact" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <IconMessage size={20} />
-                            <span>
-                                {totalInteractions}{' '}
-                                <span className="interact-text">
-                                    {isBookClub ? 'Resenhas' : 'Comentários'}
+                    {!isNews && (
+                        <div className="post-interactions">
+                            {!isBookClub && (
+                                <button
+                                    className={`like-btn ${hasLiked ? 'liked' : ''}`}
+                                    onClick={handleLike}
+                                    disabled={isLiking}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
+                                    <IconHeart size={20} color={hasLiked ? '#d62828' : '#6b778c'} filled={hasLiked} />
+                                    <span>{likes} <span className="interact-text">Curtidas</span></span>
+                                </button>
+                            )}
+                            <span className="btn-interact" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <IconMessage size={20} />
+                                <span>
+                                    {totalInteractions}{' '}
+                                    <span className="interact-text">
+                                        {isBookClub ? 'Resenhas' : 'Comentários'}
+                                    </span>
                                 </span>
                             </span>
-                        </span>
-                        <button
-                            className={`save-btn ${isSaved ? 'save-btn--saved' : ''}`}
-                            onClick={handleSave}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                        >
-                            <IconBookmark size={20} color={isSaved ? '#0a2a57' : '#6b778c'} />
-                            <span className="interact-text">{isSaved ? 'Salvo' : 'Salvar'}</span>
-                        </button>
-                    </div>
+                            <button
+                                className={`save-btn ${isSaved ? 'save-btn--saved' : ''}`}
+                                onClick={handleSave}
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <IconBookmark size={20} color={isSaved ? '#0a2a57' : '#6b778c'} />
+                                <span className="interact-text">{isSaved ? 'Salvo' : 'Salvar'}</span>
+                            </button>
+                        </div>
+                    )}
                 </article>
 
-                {showBookClubTabs ? (
-                    <div className="post-detail-bottom">
-                        <section className="comments-section">
-                            <div className="bc-tabs">
-                                <button
-                                    className={`bc-tab ${activeTab === 'resenhas' ? 'bc-tab--active' : ''}`}
-                                    onClick={() => setActiveTab('resenhas')}
-                                >
-                                    Resenhas dos Leitores
-                                    <span className="bc-tab__badge">{comments.length}</span>
-                                </button>
-                                <button
-                                    className={`bc-tab ${activeTab === 'presencas' ? 'bc-tab--active' : ''}`}
-                                    onClick={() => setActiveTab('presencas')}
-                                >
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="9" cy="7" r="4"/>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                    </svg>
-                                    Presenças
-                                    <span className="bc-tab__badge">{totalParticipants}</span>
-                                </button>
-                            </div>
+                {!isNews && (
+                    showBookClubTabs ? (
+                        <div className="post-detail-bottom">
+                            <section className="comments-section">
+                                <div className="bc-tabs">
+                                    <button
+                                        className={`bc-tab ${activeTab === 'resenhas' ? 'bc-tab--active' : ''}`}
+                                        onClick={() => setActiveTab('resenhas')}
+                                    >
+                                        Resenhas dos Leitores
+                                        <span className="bc-tab__badge">{comments.length}</span>
+                                    </button>
+                                    <button
+                                        className={`bc-tab ${activeTab === 'presencas' ? 'bc-tab--active' : ''}`}
+                                        onClick={() => setActiveTab('presencas')}
+                                    >
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="9" cy="7" r="4"/>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                        </svg>
+                                        Presenças
+                                        <span className="bc-tab__badge">{totalParticipants}</span>
+                                    </button>
+                                </div>
 
-                            {activeTab === 'resenhas' && (
-                                <>
-                                    {comments.length > 0 ? (
-                                        <>
-                                            <div className="comment-list">
-                                                {paginatedReviews.map(comment => (
-                                                    <div key={comment.id} className="comment-item">
-                                                        <div className="comment-author">
-                                                            <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
-                                                                {comment.authorName}
-                                                            </Link>
-                                                            <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
-                                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
-                                                                {formatDate(comment.createdAt)}
-                                                            </span>
+                                {activeTab === 'resenhas' && (
+                                    <>
+                                        {comments.length > 0 ? (
+                                            <>
+                                                <div className="comment-list">
+                                                    {paginatedReviews.map(comment => (
+                                                        <div key={comment.id} className="comment-item">
+                                                            <div className="comment-author">
+                                                                <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
+                                                                    {comment.authorName}
+                                                                </Link>
+                                                                <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
+                                                                <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
+                                                                    {formatDate(comment.createdAt)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="comment-text">{comment.content}</div>
                                                         </div>
-                                                        <div className="comment-text">{comment.content}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <Pagination
-                                                currentPage={reviewsPage}
-                                                totalPages={reviewsTotalPages}
-                                                totalItems={comments.length}
-                                                perPage={reviewsPerPage}
-                                                onPageChange={setReviewsPage}
-                                                onPerPageChange={handleReviewsPerPageChange}
-                                            />
-                                        </>
-                                    ) : (
-                                        <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif' }}>
-                                            Nenhuma resenha ainda.
-                                        </p>
-                                    )}
-                                </>
-                            )}
-
-                            {activeTab === 'presencas' && (
-                                <BookClubPresencaPanel participants={participants} formatDate={formatDate} />
-                            )}
-                        </section>
-                    </div>
-
-                ) : isBookClub ? (
-                    <div className="post-detail-bottom">
-                        <section className="comments-section">
-                            <h2>Resenhas dos Leitores</h2>
-                            {comments.length > 0 ? (
-                                <>
-                                    <div className="comment-list">
-                                        {paginatedReviews.map(comment => (
-                                            <div key={comment.id} className="comment-item">
-                                                <div className="comment-author">
-                                                    <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
-                                                        {comment.authorName}
-                                                    </Link>
-                                                    <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
-                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
-                                                        {formatDate(comment.createdAt)}
-                                                    </span>
+                                                    ))}
                                                 </div>
-                                                <div className="comment-text">{comment.content}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Pagination
-                                        currentPage={reviewsPage}
-                                        totalPages={reviewsTotalPages}
-                                        totalItems={comments.length}
-                                        perPage={reviewsPerPage}
-                                        onPageChange={setReviewsPage}
-                                        onPerPageChange={handleReviewsPerPageChange}
-                                    />
-                                </>
-                            ) : (
-                                <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif' }}>
-                                    Nenhuma resenha ainda.
-                                </p>
-                            )}
-                        </section>
-                    </div>
+                                                <Pagination
+                                                    currentPage={reviewsPage}
+                                                    totalPages={reviewsTotalPages}
+                                                    totalItems={comments.length}
+                                                    perPage={reviewsPerPage}
+                                                    onPageChange={setReviewsPage}
+                                                    onPerPageChange={handleReviewsPerPageChange}
+                                                />
+                                            </>
+                                        ) : (
+                                            <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                                                Nenhuma resenha ainda.
+                                            </p>
+                                        )}
+                                    </>
+                                )}
 
-                ) : (
-                    <div className="post-detail-bottom">
-                        <section className="comments-section">
-                            <h2>Comentários</h2>
-                            {comments.length > 0 ? (
-                                    <div className="comment-list">
-                                        {paginatedComments.map(comment => {
-                                            const reply = replies[comment.id];
-                                            const badge = reply && !Array.isArray(reply)
-                                                ? resolveReplyBadge(reply, isBookClub, isAdmin, isCurador)
-                                                : null;
-
-                                            return (
+                                {activeTab === 'presencas' && (
+                                    <BookClubPresencaPanel participants={participants} formatDate={formatDate} />
+                                )}
+                            </section>
+                        </div>
+                    ) : isBookClub ? (
+                        <div className="post-detail-bottom">
+                            <section className="comments-section">
+                                <h2>Resenhas dos Leitores</h2>
+                                {comments.length > 0 ? (
+                                    <>
+                                        <div className="comment-list">
+                                            {paginatedReviews.map(comment => (
                                                 <div key={comment.id} className="comment-item">
                                                     <div className="comment-author">
                                                         <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
                                                             {comment.authorName}
                                                         </Link>
+                                                        <span style={{ marginLeft: 8, color: '#f5a623' }}>★ {comment.rating}</span>
                                                         <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
                                                             {formatDate(comment.createdAt)}
                                                         </span>
-                                                        {(isAdmin || isCurador) && (
-                                                            <span className="comment-admin-actions">
-                                                                <button
-                                                                    className="action-btn btn-edit"
-                                                                    title="Editar comentário"
-                                                                    onClick={() => {
-                                                                        if (editingCommentId === comment.id) {
-                                                                            setEditingCommentId(null);
-                                                                            setEditingCommentText('');
-                                                                        } else {
-                                                                            handleEditComment(comment);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <IconPencil size={13} />
-                                                                    {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
-                                                                </button>
-                                                                <button
-                                                                    className="action-btn btn-delete"
-                                                                    title="Excluir comentário"
-                                                                    onClick={() => handleDeleteComment(comment.id)}
-                                                                >
-                                                                    <IconTrash size={13} /> Excluir
-                                                                </button>
-                                                            </span>
-                                                        )}
                                                     </div>
+                                                    <div className="comment-text">{comment.content}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Pagination
+                                            currentPage={reviewsPage}
+                                            totalPages={reviewsTotalPages}
+                                            totalItems={comments.length}
+                                            perPage={reviewsPerPage}
+                                            onPageChange={setReviewsPage}
+                                            onPerPageChange={handleReviewsPerPageChange}
+                                        />
+                                    </>
+                                ) : (
+                                    <p style={{ color: '#6b778c', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                                        Nenhuma resenha ainda.
+                                    </p>
+                                )}
+                            </section>
+                        </div>
+                    ) : (
+                        <div className="post-detail-bottom">
+                            <section className="comments-section">
+                                <h2>Comentários</h2>
+                                {comments.length > 0 ? (
+                                        <div className="comment-list">
+                                            {paginatedComments.map(comment => {
+                                                const reply = replies[comment.id];
+                                                const badge = reply && !Array.isArray(reply)
+                                                    ? resolveReplyBadge(reply, isBookClub, isAdmin, isCurador)
+                                                    : null;
 
-                                                    {editingCommentId === comment.id ? (
-                                                        <div className="comment-edit-form">
-                                                            <textarea
-                                                                className="comment-edit-textarea"
-                                                                value={editingCommentText}
-                                                                onChange={e => setEditingCommentText(e.target.value)}
-                                                                disabled={isSavingComment}
-                                                                rows={3}
-                                                            />
-                                                            <div className="comment-edit-actions">
-                                                                <button
-                                                                    className="reply-cancel-btn"
-                                                                    onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
-                                                                    disabled={isSavingComment}
-                                                                >
-                                                                    Cancelar
-                                                                </button>
-                                                                <button
-                                                                    className="reply-submit-btn"
-                                                                    onClick={() => handleSaveEditComment(comment.id)}
-                                                                    disabled={isSavingComment || !editingCommentText.trim()}
-                                                                >
-                                                                    {isSavingComment ? 'Salvando...' : 'Salvar'}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="comment-text">{comment.content}</div>
-                                                            <button
-                                                                className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
-                                                                onClick={() => handleLikeComment(comment.id)}
-                                                                style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
-                                                            >
-                                                                <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
-                                                                <span>{commentLikes[comment.id]?.count || 0}</span>
-                                                            </button>
-                                                        </>
-                                                    )}
-
-                                                    {reply && !Array.isArray(reply) && badge && (
-                                                        <div className="reply-list">
-                                                            <div className="reply-item">
-                                                                <div className="reply-author">
-                                                                    <span className={`reply-badge ${badge.className}`} title={badge.title}>
-    <ShieldIcon />
-    <span className="reply-badge__role">{badge.label}</span>
-</span>
-                                                                    <span className="reply-date">{formatDate(reply.createdAt)}</span>
-                                                                </div>
-                                                                <div className="reply-text">{reply.content}</div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {canReply && (
-                                                        <div className="reply-action-area">
-                                                            {replyingTo === comment.id ? (
-                                                                <div className="reply-form">
-                                                                    <textarea
-                                                                        className="reply-textarea"
-                                                                        placeholder="Escreva sua resposta..."
-                                                                        value={replyText}
-                                                                        onChange={e => setReplyText(e.target.value)}
-                                                                        disabled={isSendingReply}
-                                                                        rows={3}
-                                                                    />
-                                                                    <div className="reply-form-actions">
-                                                                        <button
-                                                                            className="reply-cancel-btn"
-                                                                            onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                                                            disabled={isSendingReply}
-                                                                        >
-                                                                            Cancelar
-                                                                        </button>
-                                                                        <button
-                                                                            className="reply-submit-btn"
-                                                                            onClick={() => handleSendReply(comment.id)}
-                                                                            disabled={isSendingReply || !replyText.trim()}
-                                                                        >
-                                                                            {isSendingReply ? 'Enviando...' : 'Responder'}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <button className="reply-btn" onClick={() => handleOpenReply(comment.id)}>
-                                                                    ↩ Responder
-                                                                </button>
+                                                return (
+                                                    <div key={comment.id} className="comment-item">
+                                                        <div className="comment-author">
+                                                            <Link to={`/autor/${encodeURIComponent(comment.authorName)}`} className="post-author-link">
+                                                                {comment.authorName}
+                                                            </Link>
+                                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
+                                                                {formatDate(comment.createdAt)}
+                                                            </span>
+                                                            {(isAdmin || isCurador) && (
+                                                                <span className="comment-admin-actions">
+                                                                    <button
+                                                                        className="action-btn btn-edit"
+                                                                        title="Editar comentário"
+                                                                        onClick={() => {
+                                                                            if (editingCommentId === comment.id) {
+                                                                                setEditingCommentId(null);
+                                                                                setEditingCommentText('');
+                                                                            } else {
+                                                                                handleEditComment(comment);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <IconPencil size={13} />
+                                                                        {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
+                                                                    </button>
+                                                                    <button
+                                                                        className="action-btn btn-delete"
+                                                                        title="Excluir comentário"
+                                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                                    >
+                                                                        <IconTrash size={13} /> Excluir
+                                                                    </button>
+                                                                </span>
                                                             )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                            ) : (
-                                <p style={{ color: '#6b778c', marginBottom: 24, fontFamily: 'Poppins, system-ui, sans-serif' }}>
-                                    Seja o primeiro a interagir!
-                                </p>
-                            )}
 
-                            <form className="comment-form" onSubmit={handleAddComment}>
-                                <textarea
-                                    placeholder="Escreva um comentário..."
-                                    value={newComment}
-                                    onChange={e => setNewComment(e.target.value)}
-                                    disabled={isCommenting}
-                                />
-                                <button type="submit" className="comment-submit-btn" disabled={isCommenting}>
-                                    {isCommenting ? 'Enviando...' : 'Enviar Comentário'}
-                                </button>
-                            </form>
+                                                        {editingCommentId === comment.id ? (
+                                                            <div className="comment-edit-form">
+                                                                <textarea
+                                                                    className="comment-edit-textarea"
+                                                                    value={editingCommentText}
+                                                                    onChange={e => setEditingCommentText(e.target.value)}
+                                                                    disabled={isSavingComment}
+                                                                    rows={3}
+                                                                />
+                                                                <div className="comment-edit-actions">
+                                                                    <button
+                                                                        className="reply-cancel-btn"
+                                                                        onClick={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                                                        disabled={isSavingComment}
+                                                                    >
+                                                                        Cancelar
+                                                                    </button>
+                                                                    <button
+                                                                        className="reply-submit-btn"
+                                                                        onClick={() => handleSaveEditComment(comment.id)}
+                                                                        disabled={isSavingComment || !editingCommentText.trim()}
+                                                                    >
+                                                                        {isSavingComment ? 'Salvando...' : 'Salvar'}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <div className="comment-text">{comment.content}</div>
+                                                                <button
+                                                                    className={`like-btn like-btn--comment ${commentLikes[comment.id]?.liked ? 'liked' : ''}`}
+                                                                    onClick={() => handleLikeComment(comment.id)}
+                                                                    style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 13 }}
+                                                                >
+                                                                    <IconHeart size={14} color={commentLikes[comment.id]?.liked ? '#d62828' : '#6b778c'} filled={commentLikes[comment.id]?.liked} />
+                                                                    <span>{commentLikes[comment.id]?.count || 0}</span>
+                                                                </button>
+                                                            </>
+                                                        )}
 
-                                    {comments.length > 0 && (
-                                        <div style={{ marginTop: 24 }}>
-                                            <Pagination
-                                                currentPage={commentsPage}
-                                                totalPages={commentsTotalPages}
-                                                totalItems={comments.length}
-                                                perPage={commentsPerPage}
-                                                onPageChange={setCommentsPage}
-                                                onPerPageChange={handleCommentsPerPageChange}
-                                            />
+                                                        {reply && !Array.isArray(reply) && badge && (
+                                                            <div className="reply-list">
+                                                                <div className="reply-item">
+                                                                    <div className="reply-author">
+                                                                        <span className={`reply-badge ${badge.className}`} title={badge.title}>
+                                                                            <ShieldIcon />
+                                                                            <span className="reply-badge__role">{badge.label}</span>
+                                                                        </span>
+                                                                        <span className="reply-date">{formatDate(reply.createdAt)}</span>
+                                                                    </div>
+                                                                    <div className="reply-text">{reply.content}</div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {canReply && (
+                                                            <div className="reply-action-area">
+                                                                {replyingTo === comment.id ? (
+                                                                    <div className="reply-form">
+                                                                        <textarea
+                                                                            className="reply-textarea"
+                                                                            placeholder="Escreva sua resposta..."
+                                                                            value={replyText}
+                                                                            onChange={e => setReplyText(e.target.value)}
+                                                                            disabled={isSendingReply}
+                                                                            rows={3}
+                                                                        />
+                                                                        <div className="reply-form-actions">
+                                                                            <button
+                                                                                className="reply-cancel-btn"
+                                                                                onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                                                                disabled={isSendingReply}
+                                                                            >
+                                                                                Cancelar
+                                                                            </button>
+                                                                            <button
+                                                                                className="reply-submit-btn"
+                                                                                onClick={() => handleSendReply(comment.id)}
+                                                                                disabled={isSendingReply || !replyText.trim()}
+                                                                            >
+                                                                                {isSendingReply ? 'Enviando...' : 'Responder'}
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button className="reply-btn" onClick={() => handleOpenReply(comment.id)}>
+                                                                        ↩ Responder
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    )}
-                        </section>
-                    </div>
+                                ) : (
+                                    <p style={{ color: '#6b778c', marginBottom: 24, fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                                        Seja o primeiro a interagir!
+                                    </p>
+                                )}
+
+                                <form className="comment-form" onSubmit={handleAddComment}>
+                                    <textarea
+                                        placeholder="Escreva um comentário..."
+                                        value={newComment}
+                                        onChange={e => setNewComment(e.target.value)}
+                                        disabled={isCommenting}
+                                    />
+                                    <button type="submit" className="comment-submit-btn" disabled={isCommenting}>
+                                        {isCommenting ? 'Enviando...' : 'Enviar Comentário'}
+                                    </button>
+                                </form>
+
+                                        {comments.length > 0 && (
+                                            <div style={{ marginTop: 24 }}>
+                                                <Pagination
+                                                    currentPage={commentsPage}
+                                                    totalPages={commentsTotalPages}
+                                                    totalItems={comments.length}
+                                                    perPage={commentsPerPage}
+                                                    onPageChange={setCommentsPage}
+                                                    onPerPageChange={handleCommentsPerPageChange}
+                                                />
+                                            </div>
+                                        )}
+                            </section>
+                        </div>
+                    )
                 )}
             </section>
             <Footer />

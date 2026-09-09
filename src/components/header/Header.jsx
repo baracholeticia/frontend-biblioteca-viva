@@ -5,11 +5,12 @@ import {
   IconBook, IconUser, IconMenu, IconClose,
   IconAward, IconScrollText, IconDoc, IconFeather,
   IconBookmark, IconNewspaper, IconBarChart, IconPalette,
-  IconVideo, IconGlobe, IconPencil, IconDashboard
+  IconVideo, IconGlobe, IconPencil, IconDashboard, IconFolder // <--- GARANTA QUE IconFolder e IconNewspaper ESTÃO AQUI
 } from '../icons';
 import './Header.css';
 
 const sections = [
+  { label: 'Notícias',             key: 'noticias',      icon: <IconNewspaper size={20} /> },
   { label: 'Redações Nota 10',     key: 'redacoes',      icon: <IconAward size={20} /> },
   { label: 'Cordéis',              key: 'cordeis',       icon: <IconScrollText size={20} /> },
   { label: 'Contos',               key: 'contos',        icon: <IconDoc size={20} /> },
@@ -21,6 +22,7 @@ const sections = [
   { label: 'Galeria de Artes',     key: 'artes',         icon: <IconPalette size={20} /> },
   { label: 'Vídeos Autorais',      key: 'videos',        icon: <IconVideo size={20} /> },
   { label: 'Literatura em Libras', key: 'libras',        icon: <IconGlobe size={20} /> },
+  { label: 'Outras Produções',     key: 'outros',        icon: <IconFolder size={20} /> },
 ];
 
 export function Header() {

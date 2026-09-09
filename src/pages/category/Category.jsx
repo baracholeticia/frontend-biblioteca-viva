@@ -19,7 +19,9 @@ const typeMap = {
     'artes':       'Art',
     'videos':      'Multimedia',
     'libras':      'LibraLiterature',
-    'jornal':      'Article'
+    'jornal':      'Article',
+    'outros':      'Other',
+    'noticias':    'News'
 };
 
 const typeLabels = {
@@ -34,6 +36,8 @@ const typeLabels = {
     'LibraLiterature': 'libras literatura sinais surdo surdos',
     'Article':         'artigo artigos jornal noticia noticias escola',
     'BookClub':        'clube leitura livro livros encontro book club',
+    'Other':           'outros outras producoes projetos trabalho',
+    'News':            'noticias noticia aviso avisos recado recados'
 };
 
 const getYouTubeId = (url) => {
@@ -92,10 +96,12 @@ export function Category() {
                 setError('');
 
                 if (isSearchMode) {
-                    const [worksData, clubData] = await Promise.all([
+                    const [worksData, clubData, newsData] = await Promise.all([
                         getAllWorks(),
                         getAllBookClubs().catch(() => []),
+                        getAllWorks('News').catch(() => []) // Busca notícias na barra de pesquisa também
                     ]);
+                    
                     const clubsArray = clubData.content || clubData;
                     const mappedClubs = (Array.isArray(clubsArray) ? clubsArray : []).map(bc => ({
                         id: bc.id,
@@ -108,7 +114,19 @@ export function Category() {
                         likeCount: bc.averageRating || 0,
                         commentCount: bc.participantsCount || 0,
                     }));
-                    setWorks([...(worksData || []), ...mappedClubs]);
+
+                    // Injeta a tipagem nas notícias durante a busca
+                    const newsArray = newsData.content || newsData;
+                    const mappedNews = (Array.isArray(newsArray) ? newsArray : []).map(n => ({
+                        ...n,
+                        type: 'News',
+                        author: n.authorName,
+                        description: n.content,
+                        url: n.imageUrl,
+                        publicationDate: n.createdAt,
+                    }));
+
+                    setWorks([...(worksData || []), ...mappedClubs, ...mappedNews]);
 
                 } else if (id === 'clube-leitura') {
                     const clubData = await getAllBookClubs();
@@ -128,7 +146,20 @@ export function Category() {
 
                 } else {
                     if (!currentCategory) return;
-                    const data = await getAllWorks(typeMap[id]);
+                    let data = await getAllWorks(typeMap[id]);
+                    
+                    // Se for Notícias, injeta a tipagem e formata os campos para o Card exibir tudo certo
+                    if (id === 'noticias') {
+                        data = data.map(n => ({
+                            ...n,
+                            type: 'News',
+                            author: n.authorName,
+                            description: n.content,
+                            url: n.imageUrl,
+                            publicationDate: n.createdAt || n.updatedAt
+                        }));
+                    }
+                    
                     setWorks(data);
                 }
             } catch (err) {
