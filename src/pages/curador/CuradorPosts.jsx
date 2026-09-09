@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CuradorLayout } from './CuradorLayout';
 import { getAllWorks, createWork, updateWork, deleteWork } from '../../services/workService';
-import { getAllBookClubs, createBookClub, updateBookClub, deleteBookClub } from '../../services/bookclubService';
+import { getAllBookClubs, createBookClub, updateBookClub, deleteBookClub } from '../../services/bookClubService';
 import { useToast } from '../../context/ToastContext';
 import { IconPencil, IconTrash, IconSearch, IconHeart, IconMessage, IconPlus, IconEye } from '../../components/icons';
 import { getUserByEmail } from '../../services/userService';

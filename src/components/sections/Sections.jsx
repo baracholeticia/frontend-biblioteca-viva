@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { categories as initialCategories } from '../../data/categories';
-import { getHomeData, getAllWorks } from '../../services/workService'; // <--- Adicionado getAllWorks aqui
+import { getHomeData, getAllWorks } from '../../services/workService'; 
 import { getAllBookClubs } from '../../services/bookclubService'; 
 import './Sections.css';
 
@@ -42,7 +42,7 @@ export function Sections() {
             'libras': data.libraLiteratureCount || 0,
             'clube-leitura': bookClubTotal,
             'outros': data.otherCount || 0,
-            'noticias': newsTotal // <--- Atribuindo o total calculado de Notícias!
+            'noticias': newsTotal
         };
 
         const updatedCategories = initialCategories.map(cat => ({

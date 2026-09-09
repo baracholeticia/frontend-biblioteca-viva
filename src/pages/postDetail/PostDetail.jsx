@@ -5,7 +5,7 @@ import { Footer } from '../../components/footer/Footer';
 import { Pagination } from '../../components/pagination/Pagination';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
 import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
-import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub, getBookClubParticipants } from '../../services/bookclubService';
+import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub, getBookClubParticipants } from '../../services/bookClubService';
 import { isLoggedIn } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
 import { IconHeart, IconMessage, IconBookmark, IconPencil, IconTrash } from '../../components/icons';

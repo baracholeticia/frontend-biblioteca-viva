@@ -6,7 +6,7 @@ import {
     unsubscribeFromBookClub,
     getBookClubReviews,
     createBookClubReview
-} from '../../services/bookclubService';
+} from '../../services/bookClubService';
 import { isLoggedIn } from '../../services/authService';
 import { IconBookmark, IconCalendar, IconMapPin, IconCheck, IconUser, IconStar, IconMessage } from '../icons';
 import './ClubeLeitura.css';

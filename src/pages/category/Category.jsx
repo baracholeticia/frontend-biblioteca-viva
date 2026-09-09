@@ -4,7 +4,7 @@ import { Header } from '../../components/header/Header';
 import { Footer } from '../../components/footer/Footer';
 import { categories } from '../../data/categories';
 import { getAllWorks } from '../../services/workService';
-import { getAllBookClubs } from '../../services/bookclubService';
+import { getAllBookClubs } from '../../services/bookClubService';
 import { IconPencil, IconCalendar, IconHeart, IconMessage, IconDoc, IconSearch, IconBookmark } from '../../components/icons';
 import { Pagination } from '../../components/pagination/Pagination';
 import './Category.css';
