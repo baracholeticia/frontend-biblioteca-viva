@@ -71,7 +71,7 @@ function getCurrentUserName() {
 const initialEditForm = {
     title: '', author: '', description: '', content: '', url: '',
     duration: '', genre: '', rhymeScheme: '', rate: 0,
-    theme: '', themeDescription: '', feedback: ''
+    theme: '', themeDescription: '', feedback: '', poemType: 'Lírico'
 };
 
 function convertToIsoDuration(t) {
@@ -343,6 +343,7 @@ export function PostDetail() {
                     try { commentsData = await getComments(id); } catch { commentsData = []; }
 
                     const postData = await getWorkById(id);
+                    console.log('postData completo:', JSON.stringify(postData));
                     setPost(postData);
                     setComments(commentsData || []);
 
@@ -350,8 +351,17 @@ export function PostDetail() {
                     (commentsData || []).forEach(c => { likesMap[c.id] = { count: c.likes || 0, liked: false }; });
                     setCommentLikes(likesMap);
                     setLikes(postData.likeCount || 0);
-                    setEditForm({ ...initialEditForm, ...postData });
-
+                    setEditForm({
+                        ...initialEditForm,
+                        ...postData,
+                        rhymeScheme: postData.rhymeScheme || postData.rhyme_scheme || '',
+                        poemType: postData.poemType || postData.poem_type || 'Lírico',
+                        genre: postData.genre || '',
+                        rate: postData.rate || 0,
+                        theme: postData.theme || '',
+                        themeDescription: postData.themeDescription || postData.theme_description || '',
+                        feedback: postData.feedback || '',
+                    });
                     if (isLoggedIn()) {
                         let likedList = [];
                         try { likedList = await getLikedWorks(); } catch { likedList = []; }
@@ -410,23 +420,45 @@ export function PostDetail() {
         setIsSaving(true);
         try {
             const endpointType = typeEndpoints[post.type];
+
             const payload = {
                 title: editForm.title,
-                author: editForm.author,
+                authorName: post.author,
+                authorEmail: null,
                 description: editForm.description,
                 publicationDate: post.publicationDate,
+                studentClass: post.studentClass || '1º A',
             };
-            if (editForm.content !== undefined) payload.content = editForm.content;
-            if (editForm.url !== undefined) payload.url = editForm.url;
-            if (editForm.genre !== undefined) payload.genre = editForm.genre;
-            if (editForm.rhymeScheme !== undefined) payload.rhymeScheme = editForm.rhymeScheme;
-            if (editForm.rate !== undefined) payload.rate = Number(editForm.rate);
-            if (editForm.theme !== undefined) payload.theme = editForm.theme;
-            if (editForm.themeDescription !== undefined) payload.themeDescription = editForm.themeDescription;
-            if (editForm.feedback !== undefined) payload.feedback = editForm.feedback;
-            if (['Multimedia', 'LibraLiterature'].includes(post.type) && editForm.duration) {
-                payload.duration = convertToIsoDuration(editForm.duration);
+
+            if (['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(post.type)) {
+                payload.content = editForm.content;
             }
+            if (post.type === 'Essay') {
+                payload.rate = Number(editForm.rate);
+                payload.theme = editForm.theme;
+                payload.themeDescription = editForm.themeDescription || editForm.theme;
+                payload.feedback = editForm.feedback;
+            }
+            if (post.type === 'Tale') {
+                payload.genre = editForm.genre;
+            }
+            if (post.type === 'Cordel') {
+                payload.rhymeScheme = editForm.rhymeScheme || 'ABABAB';
+                payload.artName = null;
+            }
+            if (post.type === 'Poem') {
+                payload.rhymeScheme = editForm.rhymeScheme || 'ABBA';
+                payload.poemType = editForm.poemType || 'Lírico';
+            }
+            if (['Art', 'Infographic'].includes(post.type)) {
+                // Art e Infographic não têm url no DTO de request (vai como multipart)
+                // por enquanto só envia os campos base
+            }
+            if (['Multimedia', 'LibraLiterature'].includes(post.type)) {
+                payload.url = editForm.url;
+                payload.duration = editForm.duration ? convertToIsoDuration(editForm.duration) : post.duration;
+            }
+
             await updateWork(endpointType, id, payload);
             setPost(prev => ({ ...prev, ...editForm }));
             setIsEditing(false);
@@ -807,6 +839,18 @@ export function PostDetail() {
                                         <label>Esquema de Rimas</label>
                                         <input value={editForm.rhymeScheme} onChange={e => setEditForm(f => ({ ...f, rhymeScheme: e.target.value }))} />
                                     </div>
+                                )}
+                                {post.type === 'Poem' && (
+                                    <>
+                                        <div className="admin-edit-field">
+                                            <label>Esquema de Rimas</label>
+                                            <input value={editForm.rhymeScheme} onChange={e => setEditForm(f => ({ ...f, rhymeScheme: e.target.value }))} />
+                                        </div>
+                                        <div className="admin-edit-field">
+                                            <label>Tipo de Poema</label>
+                                            <input value={editForm.poemType} onChange={e => setEditForm(f => ({ ...f, poemType: e.target.value }))} placeholder="Ex: Lírico, Regionalista, Modernista" />
+                                        </div>
+                                    </>
                                 )}
                                 {post.type === 'Tale' && (
                                     <div className="admin-edit-field">

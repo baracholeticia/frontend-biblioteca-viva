@@ -82,6 +82,18 @@ export function ClubeLeitura() {
         fetchBookClub();
     }, []);
 
+    // Busca o clube de leitura de novo no servidor para pegar o participantsCount
+    // real e atualizado, em vez de calcular manualmente no front (isso evitava
+    // dessincronizar o contador quando a API retornava 409 ou qualquer caso não previsto).
+    const refreshBookClub = async () => {
+        try {
+            const data = await getNextBookClub();
+            setNextMeeting(data);
+        } catch (error) {
+            console.error("Erro ao atualizar dados do clube do livro:", error);
+        }
+    };
+
     const handleSubscribeToggle = async () => {
         if (!isLoggedIn()) {
             setMensagem('Você precisa estar logado para confirmar presença.');
@@ -99,23 +111,18 @@ export function ClubeLeitura() {
                 await unsubscribeFromBookClub(nextMeeting.id);
                 setConfirmado(false);
                 saveSubscriptionState(nextMeeting.id, false);
-                setNextMeeting(prev => ({
-                    ...prev,
-                    participantsCount: Math.max(0, (prev.participantsCount || 1) - 1)
-                }));
+                await refreshBookClub();
             } else {
                 try {
                     await subscribeToBookClub(nextMeeting.id);
                     setConfirmado(true);
                     saveSubscriptionState(nextMeeting.id, true);
-                    setNextMeeting(prev => ({
-                        ...prev,
-                        participantsCount: (prev.participantsCount || 0) + 1
-                    }));
+                    await refreshBookClub();
                 } catch (subError) {
                     if (subError?.response?.status === 409) {
                         setConfirmado(true);
                         saveSubscriptionState(nextMeeting.id, true);
+                        await refreshBookClub();
                     } else {
                         throw subError;
                     }
@@ -126,6 +133,7 @@ export function ClubeLeitura() {
             if (error?.response?.status === 404 || error?.response?.status === 400) {
                 setConfirmado(false);
                 saveSubscriptionState(nextMeeting.id, false);
+                await refreshBookClub();
             } else {
                 setMensagem('Erro ao processar sua inscrição. Tente novamente.');
             }
@@ -184,6 +192,13 @@ export function ClubeLeitura() {
 
     const filterOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 
+    // Mesma lógica usada no PostDetail (aba "Presenças"): total de participantes
+    // = alunos inscritos (participantsCount) + o organizador do clube, já que o
+    // backend conta apenas as inscrições e não inclui o organizador nesse número.
+    const totalParticipants = nextMeeting
+        ? (nextMeeting.participantsCount || 0) + (nextMeeting.organizerName ? 1 : 0)
+        : 0;
+
     return (
         <section className="cl-section">
             <div className="cl-container">
@@ -225,7 +240,7 @@ export function ClubeLeitura() {
                                         <p className="cl-book-card__desc">{nextMeeting.bookSynopses}</p>
                                         <div className="cl-book-card__participants">
                                             <IconUser size={16} color="rgba(255,255,255,0.8)" />
-                                            <span>{nextMeeting.participantsCount} participantes confirmados</span>
+                                            <span>{totalParticipants} participantes confirmados</span>
                                         </div>
                                     </div>
                                 </div>
