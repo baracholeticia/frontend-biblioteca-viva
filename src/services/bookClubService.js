@@ -39,8 +39,6 @@ export async function unsubscribeFromBookClub(id) {
     return response.data;
 }
 
-//reviews
-
 export async function getBookClubReviews(bookClubId, page = 0, size = 50) {
     const response = await api.get(`/bookclub/${bookClubId}/reviews`, {
         params: { page, size }

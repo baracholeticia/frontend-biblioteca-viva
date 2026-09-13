@@ -259,6 +259,7 @@ export function AdminPosts() {
   const [perPage, setPerPage] = useState(10);
   const [fetchingDuration, setFetchingDuration] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDeletePost, setConfirmDeletePost] = useState(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [arts, setArts] = useState([]);
   const { showToast } = useToast();
@@ -432,15 +433,23 @@ export function AdminPosts() {
     }
   };
 
-  const handleDelete = async (post) => {
-    if (window.confirm('Excluir este item?')) {
-      try {
-        if (post._isBookClub) await deleteBookClub(post.id);
-        else if (post._isNews) await deleteWork(post.id, 'news');
-        else await deleteWork(post.id);
-        showToast("Excluído.", "success");
-        fetchPosts();
-      } catch (error) { showToast("Erro ao excluir.", "error"); }
+  const handleDelete = (post) => {
+    setConfirmDeletePost(post);
+  };
+
+  const handleConfirmDeletePost = async () => {
+    try {
+      if (confirmDeletePost._isBookClub) {
+        await deleteBookClub(confirmDeletePost.id);
+      } else {
+        await deleteWork(confirmDeletePost.id);
+      }
+      showToast('Excluído.', 'success');
+      setConfirmDeletePost(null);
+      fetchPosts();
+    } catch (error) {
+      console.error(error);
+      showToast('Erro ao excluir.', 'error');
     }
   };
 
@@ -770,8 +779,22 @@ export function AdminPosts() {
               onPerPageChange={handlePerPageChange}
           />
         </div>
-      </AdminLayout>
-  );
+        {confirmDeletePost && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+              <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir publicação</h3>
+                <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                  Tem certeza que deseja excluir <strong style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', display: 'inline-block', maxWidth: '100%' }}>{confirmDeletePost.title}</strong>? Esta ação não pode ser desfeita.                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button className="action-btn btn-view" onClick={() => setConfirmDeletePost(null)}>Cancelar</button>
+                  <button className="action-btn btn-delete" onClick={handleConfirmDeletePost} style={{ background: '#d62828', color: '#fff' }}>
+                    <IconTrash size={14} /> Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+      </AdminLayout>  );
 }
 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: '#42526e' };

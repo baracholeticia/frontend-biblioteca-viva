@@ -6,7 +6,7 @@ import { Pagination } from '../../components/pagination/Pagination';
 import { getWorkById, likeWork, getLikedWorks, updateWork, deleteWork } from '../../services/workService';
 import { getComments, createComment, getReplies, createReply, updateComment, deleteComment, likeComment, unlikeComment } from '../../services/commentService';
 import { getBookClubById, getBookClubReviews, updateBookClub, deleteBookClub, getBookClubParticipants } from '../../services/bookClubService';
-import { isLoggedIn } from '../../services/authService';
+import { isLoggedIn, getUserRole } from '../../services/authService';
 import { useToast } from '../../context/ToastContext';
 import { IconHeart, IconMessage, IconBookmark, IconPencil, IconTrash } from '../../components/icons';
 import './PostDetail.css';
@@ -41,23 +41,11 @@ const typeEndpoints = {
 };
 
 function getIsAdmin() {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) return false;
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const role = payload.role || payload.roles || '';
-        return role.includes('ADMIN') || role === 'ROLE_ADMIN';
-    } catch { return false; }
+    return getUserRole().toUpperCase() === 'ADMIN';
 }
 
 function getIsCurador() {
-    try {
-        const token = localStorage.getItem('token');
-        if (!token) return false;
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const role = payload.role || payload.roles || '';
-        return role.includes('CURADOR') || role === 'ROLE_CURADOR';
-    } catch { return false; }
+    return getUserRole().toUpperCase() === 'CURADOR';
 }
 
 function getCurrentUserName() {
@@ -74,7 +62,7 @@ function getCurrentUserName() {
 const initialEditForm = {
     title: '', author: '', description: '', content: '', url: '',
     duration: '', genre: '', rhymeScheme: '', rate: 0,
-    theme: '', themeDescription: '', feedback: ''
+    theme: '', themeDescription: '', feedback: '', poemType: 'Lírico'
 };
 
 function convertToIsoDuration(t) {
@@ -270,6 +258,7 @@ export function PostDetail() {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState(initialEditForm);
     const [isSaving, setIsSaving] = useState(false);
+    const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
 
     const [replies, setReplies] = useState({});
     const [replyingTo, setReplyingTo] = useState(null);
@@ -279,33 +268,22 @@ export function PostDetail() {
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editingCommentText, setEditingCommentText] = useState('');
     const [isSavingComment, setIsSavingComment] = useState(false);
+    const [confirmDeleteComment, setConfirmDeleteComment] = useState(null);
 
     const isBookClub = categoria === 'clube-leitura';
     const isNews = categoria === 'noticias';
 
     const isOrganizerOfThisClub = useMemo(() => {
         if (!post || !isBookClub) return false;
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return false;
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const tokenEmail = (payload.sub || payload.email || '').toLowerCase();
-            const tokenName = (payload.name || payload.username || '').toLowerCase();
-            const organizer = (post.organizerName || '').toLowerCase();
-            const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase();
-            return (
-                organizer === tokenName ||
-                organizer === tokenEmail ||
-                organizer === userEmail ||
-                organizer === userEmail.split('@')[0]
-            );
-        } catch { return false; }
+        const userEmail = (localStorage.getItem('userEmail') || '').toLowerCase();
+        const userName = (localStorage.getItem('userName') || '').toLowerCase();
+        const organizer = (post.organizerName || '').toLowerCase();
+        return (
+            organizer === userName ||
+            organizer === userEmail ||
+            organizer === userEmail.split('@')[0]
+        );
     }, [post, isBookClub]);
-
-    useEffect(() => {
-        setReviewsPage(1);
-        setCommentsPage(1);
-    }, [id]);
 
     useEffect(() => {
         async function fetchData() {
@@ -354,6 +332,7 @@ export function PostDetail() {
                     try { commentsData = await getComments(id); } catch { commentsData = []; }
 
                     const postData = await getWorkById(id);
+                    console.log('postData completo:', JSON.stringify(postData));
                     setPost(postData);
                     setComments(commentsData || []);
 
@@ -361,8 +340,17 @@ export function PostDetail() {
                     (commentsData || []).forEach(c => { likesMap[c.id] = { count: c.likes || 0, liked: false }; });
                     setCommentLikes(likesMap);
                     setLikes(postData.likeCount || 0);
-                    setEditForm({ ...initialEditForm, ...postData });
-
+                    setEditForm({
+                        ...initialEditForm,
+                        ...postData,
+                        rhymeScheme: postData.rhymeScheme || postData.rhyme_scheme || '',
+                        poemType: postData.poemType || postData.poem_type || 'Lírico',
+                        genre: postData.genre || '',
+                        rate: postData.rate || 0,
+                        theme: postData.theme || '',
+                        themeDescription: postData.themeDescription || postData.theme_description || '',
+                        feedback: postData.feedback || '',
+                    });
                     if (isLoggedIn()) {
                         let likedList = [];
                         try { likedList = await getLikedWorks(); } catch { likedList = []; }
@@ -400,7 +388,6 @@ export function PostDetail() {
     }, [id, isBookClub, isNews, isAdmin, isCurador]);
 
     const handleAdminDelete = async () => {
-        if (!window.confirm('Tem certeza que deseja excluir este post?')) return;
         try {
             if (isBookClub) {
                 await deleteBookClub(id);
@@ -432,23 +419,45 @@ export function PostDetail() {
             }
 
             const endpointType = typeEndpoints[post.type];
+
             const payload = {
                 title: editForm.title,
-                author: editForm.author,
+                authorName: post.author,
+                authorEmail: null,
                 description: editForm.description,
                 publicationDate: post.publicationDate,
+                studentClass: post.studentClass || '1º A',
             };
-            if (editForm.content !== undefined) payload.content = editForm.content;
-            if (editForm.url !== undefined) payload.url = editForm.url;
-            if (editForm.genre !== undefined) payload.genre = editForm.genre;
-            if (editForm.rhymeScheme !== undefined) payload.rhymeScheme = editForm.rhymeScheme;
-            if (editForm.rate !== undefined) payload.rate = Number(editForm.rate);
-            if (editForm.theme !== undefined) payload.theme = editForm.theme;
-            if (editForm.themeDescription !== undefined) payload.themeDescription = editForm.themeDescription;
-            if (editForm.feedback !== undefined) payload.feedback = editForm.feedback;
-            if (['Multimedia', 'LibraLiterature'].includes(post.type) && editForm.duration) {
-                payload.duration = convertToIsoDuration(editForm.duration);
+
+            if (['Essay', 'Cordel', 'Tale', 'ShortStory', 'Article', 'Poem'].includes(post.type)) {
+                payload.content = editForm.content;
             }
+            if (post.type === 'Essay') {
+                payload.rate = Number(editForm.rate);
+                payload.theme = editForm.theme;
+                payload.themeDescription = editForm.themeDescription || editForm.theme;
+                payload.feedback = editForm.feedback;
+            }
+            if (post.type === 'Tale') {
+                payload.genre = editForm.genre;
+            }
+            if (post.type === 'Cordel') {
+                payload.rhymeScheme = editForm.rhymeScheme || 'ABABAB';
+                payload.artName = null;
+            }
+            if (post.type === 'Poem') {
+                payload.rhymeScheme = editForm.rhymeScheme || 'ABBA';
+                payload.poemType = editForm.poemType || 'Lírico';
+            }
+            if (['Art', 'Infographic'].includes(post.type)) {
+                // Art e Infographic não têm url no DTO de request (vai como multipart)
+                // por enquanto só envia os campos base
+            }
+            if (['Multimedia', 'LibraLiterature'].includes(post.type)) {
+                payload.url = editForm.url;
+                payload.duration = editForm.duration ? convertToIsoDuration(editForm.duration) : post.duration;
+            }
+
             await updateWork(endpointType, id, payload);
             setPost(prev => ({ ...prev, ...editForm }));
             setIsEditing(false);
@@ -655,12 +664,16 @@ export function PostDetail() {
         }
     };
 
-    const handleDeleteComment = async (commentId) => {
-        if (!window.confirm('Tem certeza que deseja excluir este comentário?')) return;
+    const handleDeleteComment = (commentId, content) => {
+        setConfirmDeleteComment({ id: commentId, content });
+    };
+
+    const handleConfirmDeleteComment = async () => {
         try {
-            await deleteComment(id, commentId);
-            setComments(prev => prev.filter(c => c.id !== commentId));
-            setReplies(prev => { const next = { ...prev }; delete next[commentId]; return next; });
+            await deleteComment(id, confirmDeleteComment.id);
+            setComments(prev => prev.filter(c => c.id !== confirmDeleteComment.id));
+            setReplies(prev => { const next = { ...prev }; delete next[confirmDeleteComment.id]; return next; });
+            setConfirmDeleteComment(null);
             showToast('Comentário excluído.', 'success');
         } catch (err) {
             console.error('Erro ao excluir comentário:', err);
@@ -740,7 +753,7 @@ export function PostDetail() {
                                 <button className="action-btn btn-edit" onClick={() => setIsEditing(prev => !prev)}>
                                     <IconPencil size={14} /> {isEditing ? 'Cancelar' : 'Editar Post'}
                                 </button>
-                                <button className="action-btn btn-delete" onClick={handleAdminDelete}>
+                                <button className="action-btn btn-delete" onClick={() => setConfirmDeleteModal(true)}>
                                     <IconTrash size={14} /> Excluir Post
                                 </button>
                             </div>
@@ -769,7 +782,7 @@ export function PostDetail() {
                                 >
                                     <IconPencil size={14} /> {isEditingBookClub ? 'Cancelar' : 'Editar Clube'}
                                 </button>
-                                <button className="action-btn btn-delete" onClick={handleAdminDelete}>
+                                <button className="action-btn btn-delete" onClick={() => setConfirmDeleteModal(true)}>
                                     <IconTrash size={14} /> Excluir Clube
                                 </button>
                             </div>
@@ -835,6 +848,18 @@ export function PostDetail() {
                                         <label>Esquema de Rimas</label>
                                         <input value={editForm.rhymeScheme} onChange={e => setEditForm(f => ({ ...f, rhymeScheme: e.target.value }))} />
                                     </div>
+                                )}
+                                {post.type === 'Poem' && (
+                                    <>
+                                        <div className="admin-edit-field">
+                                            <label>Esquema de Rimas</label>
+                                            <input value={editForm.rhymeScheme} onChange={e => setEditForm(f => ({ ...f, rhymeScheme: e.target.value }))} />
+                                        </div>
+                                        <div className="admin-edit-field">
+                                            <label>Tipo de Poema</label>
+                                            <input value={editForm.poemType} onChange={e => setEditForm(f => ({ ...f, poemType: e.target.value }))} placeholder="Ex: Lírico, Regionalista, Modernista" />
+                                        </div>
+                                    </>
                                 )}
                                 {post.type === 'Tale' && (
                                     <div className="admin-edit-field">
@@ -1072,6 +1097,31 @@ export function PostDetail() {
                                                         <span style={{ color: '#94a3b8', fontSize: '0.8rem', marginLeft: '8px', fontWeight: 'normal' }}>
                                                             {formatDate(comment.createdAt)}
                                                         </span>
+                                                        {(isAdmin || isCurador) && (
+                                                            <span className="comment-admin-actions">
+                                                                <button
+                                                                    className="action-btn btn-edit"
+                                                                    title="Editar comentário"
+                                                                    onClick={() => {
+                                                                        if (editingCommentId === comment.id) {
+                                                                            setEditingCommentId(null);
+                                                                            setEditingCommentText('');
+                                                                        } else {
+                                                                            handleEditComment(comment);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <IconPencil size={13} />
+                                                                    {editingCommentId === comment.id ? 'Cancelar' : 'Editar'}
+                                                                </button>
+                                                                <button
+                                                                    className="action-btn btn-delete"
+                                                                    title="Excluir comentário"
+                                                                    onClick={() => handleDeleteComment(comment.id, comment.content)}                                                                >
+                                                                    <IconTrash size={13} /> Excluir
+                                                                </button>
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="comment-text">{comment.content}</div>
                                                 </div>
@@ -1272,6 +1322,45 @@ export function PostDetail() {
                     )
                 )}
             </section>
+            {confirmDeleteModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                        <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>
+                            {isBookClub ? 'Excluir clube' : 'Excluir post'}
+                        </h3>
+                        <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                            Tem certeza que deseja excluir <strong style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', display: 'inline-block', maxWidth: '100%' }}>{post?.title}</strong>? Esta ação não pode ser desfeita.                        </p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                            <button className="action-btn btn-view" onClick={() => setConfirmDeleteModal(false)}>Cancelar</button>
+                            <button className="action-btn btn-delete" onClick={handleAdminDelete} style={{ background: '#d62828', color: '#fff' }}>
+                                <IconTrash size={14} /> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {confirmDeleteComment && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                        <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir comentário</h3>
+                        <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                            Tem certeza que deseja excluir este comentário?
+                            {confirmDeleteComment.content && (
+                                <span style={{ display: 'block', marginTop: 8, fontStyle: 'italic', color: '#6b778c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                        "{confirmDeleteComment.content.length > 60 ? confirmDeleteComment.content.slice(0, 60) + '...' : confirmDeleteComment.content}"
+                    </span>
+                            )}
+                        </p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                            <button className="action-btn btn-view" onClick={() => setConfirmDeleteComment(null)}>Cancelar</button>
+                            <button className="action-btn btn-delete" onClick={handleConfirmDeleteComment} style={{ background: '#d62828', color: '#fff' }}>
+                                <IconTrash size={14} /> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <Footer />
         </main>
     );
