@@ -26,6 +26,8 @@ export function AdminUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const { showToast } = useToast();
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const toggleExpand = (id) => setExpandedId(prev => prev === id ? null : id);
 
@@ -54,11 +56,15 @@ export function AdminUsers() {
     return statusMatch && matchSearch;
   });
 
-  const handleDeleteUser = async (id, name) => {
-    if (!window.confirm(`Tem certeza que deseja excluir permanentemente o usuário "${name}"? Esta ação não pode ser desfeita.`)) return;
+  const handleDeleteUser = (id, name) => {
+    setConfirmDeleteUser({ id, name });
+  };
+
+  const handleConfirmDeleteUser = async () => {
     try {
-      await deleteUser(id);
+      await deleteUser(confirmDeleteUser.id);
       showToast('Usuário excluído com sucesso.', 'success');
+      setConfirmDeleteUser(null);
       fetchUsers();
     } catch (error) {
       console.error(error);
@@ -66,14 +72,19 @@ export function AdminUsers() {
     }
   };
 
-  const handleUpdateStatus = async (id, action) => {
+  const handleUpdateStatus = (id, action) => {
+    setConfirmAction({ id, action });
+  };
+
+  const handleConfirmAction = async () => {
     try {
-      if (action === 'approve') { await approveUser(id); showToast("Usuário aprovado e ativado!", "success"); }
-      if (action === 'reject') { await rejectUser(id); showToast("Usuário rejeitado.", "success"); }
-      if (action === 'block') { await blockUser(id); showToast("Usuário bloqueado.", "success"); }
+      if (confirmAction.action === 'approve') { await approveUser(confirmAction.id); showToast("Usuário aprovado e ativado!", "success"); }
+      if (confirmAction.action === 'reject') { await rejectUser(confirmAction.id); showToast("Usuário rejeitado.", "success"); }
+      if (confirmAction.action === 'block') { await blockUser(confirmAction.id); showToast("Usuário bloqueado.", "success"); }
+      setConfirmAction(null);
       fetchUsers();
     } catch (error) {
-      console.error(error); // Variável 'error' utilizada!
+      console.error(error);
       showToast("Erro ao atualizar status do usuário.", "error");
     }
   };
@@ -201,6 +212,53 @@ export function AdminUsers() {
               onPerPageChange={handlePerPageChange}
           />
         </div>
-      </AdminLayout>
-  );
+        {confirmDeleteUser && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+              <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir usuário</h3>
+                <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                  Tem certeza que deseja excluir permanentemente o usuário{' '}
+                  <strong style={{ wordBreak: 'break-word' }}>"{confirmDeleteUser.name}"</strong>?
+                  {' '}Esta ação não pode ser desfeita.
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button className="action-btn btn-view" onClick={() => setConfirmDeleteUser(null)}>Cancelar</button>
+                  <button className="action-btn btn-delete" onClick={handleConfirmDeleteUser} style={{ background: '#d62828', color: '#fff' }}>
+                    <IconTrash size={14} /> Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {confirmAction && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+              <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>
+                  {confirmAction.action === 'block' && 'Bloquear usuário'}
+                  {confirmAction.action === 'reject' && 'Rejeitar usuário'}
+                  {confirmAction.action === 'approve' && 'Aprovar usuário'}
+                </h3>
+                <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                  {confirmAction.action === 'block' && 'Tem certeza que deseja bloquear este usuário? Ele não conseguirá mais acessar o sistema até você desbloqueá-lo.'}
+                  {confirmAction.action === 'reject' && 'Tem certeza que deseja rejeitar este usuário?'}
+                  {confirmAction.action === 'approve' && 'Tem certeza que deseja aprovar e ativar este usuário?'}
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button className="action-btn btn-view" onClick={() => setConfirmAction(null)}>Cancelar</button>
+                  <button
+                      className={confirmAction.action === 'approve' ? 'action-btn btn-approve' : 'action-btn btn-delete'}
+                      onClick={handleConfirmAction}
+                      style={{ color: '#fff', background: confirmAction.action === 'approve' ? '#16a34a' : '#d62828' }}
+                  >
+                    {confirmAction.action === 'block' && 'Bloquear'}
+                    {confirmAction.action === 'reject' && 'Rejeitar'}
+                    {confirmAction.action === 'approve' && 'Aprovar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+      </AdminLayout>  );
 }

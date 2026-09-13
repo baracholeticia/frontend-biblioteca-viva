@@ -38,6 +38,8 @@ export function AdminComments() {
   const [editReplyText, setEditReplyText] = useState('');
 
   const [expandedId, setExpandedId] = useState(null);
+  const [confirmDeleteComment, setConfirmDeleteComment] = useState(null);
+  const [confirmDeleteReply, setConfirmDeleteReply] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
@@ -84,16 +86,19 @@ export function AdminComments() {
     }
   };
 
-  const handleDelete = async (comment) => {
-    if (window.confirm('Excluir este comentário permanentemente?')) {
-      try {
-        await deleteComment(comment.workId, comment.id);
-        showToast("Comentário excluído.", "success");
-        fetchAllComments();
-      } catch (error) {
-        console.error(error);
-        showToast("Erro ao excluir comentário.", "error");
-      }
+  const handleDelete = (comment) => {
+    setConfirmDeleteComment(comment);
+  };
+
+  const handleConfirmDeleteComment = async () => {
+    try {
+      await deleteComment(confirmDeleteComment.workId, confirmDeleteComment.id);
+      showToast("Comentário excluído.", "success");
+      setConfirmDeleteComment(null);
+      fetchAllComments();
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao excluir comentário.", "error");
     }
   };
 
@@ -143,16 +148,19 @@ export function AdminComments() {
     }
   };
 
-  const handleDeleteReply = async (workId, commentId, replyId) => {
-    if (window.confirm('Excluir esta resposta permanentemente?')) {
-      try {
-        await deleteReply(workId, commentId, replyId);
-        showToast("Resposta excluída.", "success");
-        loadRepliesForComment(workId, commentId);
-      } catch (error) {
-        console.error(error);
-        showToast("Erro ao excluir resposta.", "error");
-      }
+  const handleDeleteReply = (workId, commentId, replyId) => {
+    setConfirmDeleteReply({ workId, commentId, replyId });
+  };
+
+  const handleConfirmDeleteReply = async () => {
+    try {
+      await deleteReply(confirmDeleteReply.workId, confirmDeleteReply.commentId, confirmDeleteReply.replyId);
+      showToast("Resposta excluída.", "success");
+      setConfirmDeleteReply(null);
+      loadRepliesForComment(confirmDeleteReply.workId, confirmDeleteReply.commentId);
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao excluir resposta.", "error");
     }
   };
 
@@ -346,6 +354,43 @@ export function AdminComments() {
           onPerPageChange={handlePerPageChange}
         />
       </div>
-    </AdminLayout>
-  );
+      {confirmDeleteComment && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+              <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir comentário</h3>
+              <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                Tem certeza que deseja excluir o comentário de <strong>{confirmDeleteComment.userName}</strong>?
+                {confirmDeleteComment.content && (
+                    <span style={{ display: 'block', marginTop: 8, fontStyle: 'italic', color: '#6b778c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                              "{confirmDeleteComment.content.length > 60 ? confirmDeleteComment.content.slice(0, 60) + '...' : confirmDeleteComment.content}"
+                          </span>
+                )}
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button className="action-btn btn-view" onClick={() => setConfirmDeleteComment(null)}>Cancelar</button>
+                <button className="action-btn btn-delete" onClick={handleConfirmDeleteComment} style={{ background: '#d62828', color: '#fff' }}>
+                  <IconTrash size={14} /> Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+      )}
+
+      {confirmDeleteReply && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+              <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir resposta</h3>
+              <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                Tem certeza que deseja excluir esta resposta? Esta ação não pode ser desfeita.
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button className="action-btn btn-view" onClick={() => setConfirmDeleteReply(null)}>Cancelar</button>
+                <button className="action-btn btn-delete" onClick={handleConfirmDeleteReply} style={{ background: '#d62828', color: '#fff' }}>
+                  <IconTrash size={14} /> Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+      )}
+    </AdminLayout>  );
 }

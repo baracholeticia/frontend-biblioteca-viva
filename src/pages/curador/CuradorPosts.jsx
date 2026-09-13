@@ -5,7 +5,7 @@ import { getAllWorks, createWork, updateWork, deleteWork } from '../../services/
 import { getAllBookClubs, createBookClub, updateBookClub, deleteBookClub } from '../../services/bookClubService';
 import { useToast } from '../../context/ToastContext';
 import { IconPencil, IconTrash, IconSearch, IconHeart, IconMessage, IconPlus, IconEye } from '../../components/icons';
-import { getUserByEmail } from '../../services/userService';
+import { getUserByEmail, getAllUsers } from '../../services/userService';
 import { Pagination } from '../../components/pagination/Pagination';
 import '../admin/AdminLayout.css';
 
@@ -17,15 +17,79 @@ const ChevronIcon = ({ expanded }) => (
     </svg>
 );
 
-function AuthorInput({ value, onChange }) {
+function AuthorAutocomplete({ value, onChange, users }) {
+    const [open, setOpen] = useState(false);
+    const [inputValue, setInputValue] = useState(value || '');
+    const [prevValue, setPrevValue] = useState(value);
+    const wrapperRef = useRef(null);
+
+    if (value !== prevValue) {
+        setPrevValue(value);
+        setInputValue(value || '');
+    }
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const suggestions = inputValue.trim().length > 0
+        ? users.filter(u => {
+            const q = inputValue.toLowerCase();
+            return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
+        }).slice(0, 6)
+        : [];
+
+    const handleInput = (e) => {
+        const val = e.target.value;
+        setInputValue(val);
+        onChange(val);
+        setOpen(true);
+    };
+
+    const handleSelect = (user) => {
+        setInputValue(user.name);
+        onChange(user.name);
+        setOpen(false);
+    };
+
     return (
-        <input
-            style={inputStyle}
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            placeholder="E-mail do aluno (ou nome caso não tenha cadastro)..."
-            autoComplete="off"
-        />
+        <div ref={wrapperRef} style={{ position: 'relative' }}>
+            <input
+                style={inputStyle}
+                value={inputValue}
+                onChange={handleInput}
+                onFocus={() => suggestions.length > 0 && setOpen(true)}
+                placeholder="Nome ou e-mail do autor..."
+                autoComplete="off"
+            />
+            {open && suggestions.length > 0 && (
+                <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: 'white', border: '1px solid #dfe1e6', borderRadius: 8,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4, overflow: 'hidden'
+                }}>
+                    {suggestions.map(user => (
+                        <div
+                            key={user.id}
+                            onMouseDown={() => handleSelect(user)}
+                            style={{
+                                padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f0f2f5',
+                                display: 'flex', flexDirection: 'column', gap: 2, transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f6f7f9'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                        >
+                            <span style={{ fontWeight: 600, fontSize: 14, color: '#0a2a57' }}>{user.name}</span>
+                            <span style={{ fontSize: 12, color: '#6b778c' }}>{user.email}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -113,10 +177,11 @@ function normalizeBookClub(bc) {
 export function CuradorPosts() {
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
+    const [users, setUsers] = useState([]);
     const [editing, setEditing] = useState(null);
     const [creating, setCreating] = useState(false);
     const [form, setForm] = useState(initialForm);
-    const [imageFile, setImageFile] = useState(null); 
+    const [imageFile, setImageFile] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('newest');
@@ -127,6 +192,7 @@ export function CuradorPosts() {
     const [perPage, setPerPage] = useState(10);
     const [fetchingDuration, setFetchingDuration] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [confirmDeletePost, setConfirmDeletePost] = useState(null);
     const { showToast } = useToast();
 
     const urlDebounceRef = useRef(null);
@@ -159,6 +225,11 @@ export function CuradorPosts() {
     // ──────────────────────────────────────────────────────────────────────────
 
     useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+    // Busca a lista de alunos/usuários cadastrados para o autocomplete de autor
+    useEffect(() => {
+        getAllUsers().then(setUsers).catch(() => {});
+    }, []);
 
     // ─── URL change handler with YouTube auto-duration ─────────────────────────
     const handleUrlChange = (url) => {
@@ -218,10 +289,10 @@ export function CuradorPosts() {
     const startEdit = (post) => {
         setEditing(post.id);
         setCreating(false);
-        setImageFile(null); 
+        setImageFile(null);
         setIsDragging(false);
         if(fileInputRef.current) fileInputRef.current.value = '';
-        
+
         if (post._isBookClub) {
             setForm({
                 ...initialForm,
@@ -242,16 +313,15 @@ export function CuradorPosts() {
         }
     };
 
-    const startCreate = () => { 
-        setCreating(true); 
-        setEditing(null); 
-        setForm(initialForm); 
-        setImageFile(null); 
-        setIsDragging(false); 
+    const startCreate = () => {
+        setCreating(true);
+        setEditing(null);
+        setForm(initialForm);
+        setImageFile(null);
+        setIsDragging(false);
         if(fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    // ─── Save ─────────────────────────────────────────────────────────────────
     const handleSave = async () => {
         if (saving) return;
         setSaving(true);
@@ -271,13 +341,19 @@ export function CuradorPosts() {
                 return;
             }
 
-            const isEmail = (str) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
-            let authorPayload = { authorName: form.author };
-            if (isEmail(form.author)) {
-                try {
-                    const user = await getUserByEmail(form.author);
-                    if (user?.email) authorPayload = { authorEmail: user.email };
-                } catch { /* não encontrado, usa como nome */ }
+            const matchedUser = users.find(u => u.email === form.author || u.name === form.author);
+            let authorPayload = matchedUser
+                ? { authorEmail: matchedUser.email }
+                : { authorName: form.author };
+
+            if (!matchedUser) {
+                const isEmail = (str) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
+                if (isEmail(form.author)) {
+                    try {
+                        const user = await getUserByEmail(form.author);
+                        if (user?.email) authorPayload = { authorEmail: user.email };
+                    } catch { /* não encontrado, usa como nome */ }
+                }
             }
 
             const basePayload = {
@@ -293,7 +369,7 @@ export function CuradorPosts() {
                 case 'ShortStory': case 'Article': payload = { ...basePayload, content: form.content }; break;
                 case 'Poem': payload = { ...basePayload, content: form.content }; break;
                 case 'Multimedia': case 'LibraLiterature': payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) }; break;
-                case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break; 
+                case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break;
                 default: payload = { ...basePayload };
             }
             const endpointType = typeEndpoints[form.type];
@@ -311,19 +387,24 @@ export function CuradorPosts() {
             setSaving(false);
         }
     };
-    // ──────────────────────────────────────────────────────────────────────────
 
-    const handleDelete = async (post) => {
-        if (window.confirm('Excluir este item?')) {
-            try {
-                if (post._isBookClub) { await deleteBookClub(post.id); }
-                else { await deleteWork(post.id); }
-                showToast('Excluído.', 'success');
-                fetchPosts();
-            } catch (error) {
-                console.error(error);
-                showToast('Erro ao excluir.', 'error');
+    const handleDelete = (post) => {
+        setConfirmDeletePost(post);
+    };
+
+    const handleConfirmDeletePost = async () => {
+        try {
+            if (confirmDeletePost._isBookClub) {
+                await deleteBookClub(confirmDeletePost.id);
+            } else {
+                await deleteWork(confirmDeletePost.id);
             }
+            showToast('Excluído.', 'success');
+            setConfirmDeletePost(null);
+            fetchPosts();
+        } catch (error) {
+            console.error(error);
+            showToast('Erro ao excluir.', 'error');
         }
     };
 
@@ -396,8 +477,16 @@ export function CuradorPosts() {
                                 <input style={inputStyle} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                <label style={labelStyle}>Autor</label>
-                                <AuthorInput value={form.author} onChange={(name) => setForm({ ...form, author: name })} />
+                                <label style={labelStyle}>
+                                    Autor
+                                    {form.author && users.find(u => u.name === form.author)
+                                        ? <span style={{ marginLeft: 8, fontSize: 11, color: '#065f46', background: '#d1fae5', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>✓ Perfil vinculado</span>
+                                        : form.author
+                                            ? <span style={{ marginLeft: 8, fontSize: 11, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>Sem perfil vinculado</span>
+                                            : null
+                                    }
+                                </label>
+                                <AuthorAutocomplete value={form.author} users={users} onChange={(name) => setForm({ ...form, author: name })} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label style={labelStyle}>Turma</label>
@@ -429,37 +518,37 @@ export function CuradorPosts() {
                             {['Art', 'Infographic'].includes(form.type) && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
                                     <label style={labelStyle}>Upload de Imagem</label>
-                                    
-                                    <input 
-                                        type="file" 
+
+                                    <input
+                                        type="file"
                                         ref={fileInputRef}
-                                        style={{ display: 'none' }} 
-                                        accept="image/*" 
+                                        style={{ display: 'none' }}
+                                        accept="image/*"
                                         onChange={e => {
                                             if (e.target.files && e.target.files.length > 0) {
                                                 setImageFile(e.target.files[0]);
                                             }
-                                        }} 
+                                        }}
                                     />
 
                                     {(imageFile || form.url) ? (
                                         <div className="image-preview-container">
-                                            <img 
-                                                src={imageFile ? URL.createObjectURL(imageFile) : form.url} 
-                                                alt="Preview" 
-                                                className="image-preview" 
+                                            <img
+                                                src={imageFile ? URL.createObjectURL(imageFile) : form.url}
+                                                alt="Preview"
+                                                className="image-preview"
                                             />
                                             <div className="image-preview-actions">
-                                                <button 
-                                                    type="button" 
-                                                    className="btn-replace" 
+                                                <button
+                                                    type="button"
+                                                    className="btn-replace"
                                                     onClick={() => fileInputRef.current?.click()}
                                                 >
                                                     <IconPencil size={14} /> Substituir
                                                 </button>
-                                                <button 
-                                                    type="button" 
-                                                    className="btn-remove-image" 
+                                                <button
+                                                    type="button"
+                                                    className="btn-remove-image"
                                                     onClick={() => {
                                                         setImageFile(null);
                                                         setForm({ ...form, url: '' }); // Limpa a URL existente se houver
@@ -471,7 +560,7 @@ export function CuradorPosts() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div 
+                                        <div
                                             className={`drag-drop-zone ${isDragging ? 'active' : ''}`}
                                             onDragOver={handleDragOver}
                                             onDragLeave={handleDragLeave}
@@ -607,8 +696,22 @@ export function CuradorPosts() {
                     onPerPageChange={(value) => { setPerPage(value); setCurrentPage(1); }}
                 />
             </div>
-        </CuradorLayout>
-    );
+            {confirmDeletePost && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
+                        <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir publicação</h3>
+                        <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
+                            Tem certeza que deseja excluir <strong style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', display: 'inline-block', maxWidth: '100%' }}>{confirmDeletePost.title}</strong>? Esta ação não pode ser desfeita.                        </p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                            <button className="action-btn btn-view" onClick={() => setConfirmDeletePost(null)}>Cancelar</button>
+                            <button className="action-btn btn-delete" onClick={handleConfirmDeletePost} style={{ background: '#d62828', color: '#fff' }}>
+                                <IconTrash size={14} /> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </CuradorLayout>    );
 }
 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: '#42526e' };
