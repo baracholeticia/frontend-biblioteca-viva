@@ -7,7 +7,8 @@ import { getYoutubeThumbnail } from '../multimidia/Multimidia';
 
 const typeToRoute = {
   'Essay': 'redacoes', 'Cordel': 'cordeis', 'Tale': 'contos', 'ShortStory': 'cronicas',
-  'Article': 'jornal', 'Infographic': 'infograficos', 'Art': 'artes', 'Multimedia': 'videos', 'LibraLiterature': 'libras'
+  'Article': 'jornal', 'Infographic': 'infograficos', 'Art': 'artes', 'Multimedia': 'videos', 'LibraLiterature': 'libras',
+  'Other': 'outros', 'News': 'noticias'
 };
 
 const categoryTranslations = {
@@ -21,7 +22,9 @@ const categoryTranslations = {
   'Multimedia': 'Vídeo Autoral',
   'LibraLiterature': 'Literatura em Libras',
   'Poem': 'Poema',
-  'BookClub': 'Clube de Leitura'
+  'BookClub': 'Clube de Leitura',
+  'Other': 'Outras Produções',
+  'News': 'Notícias'
 };
 
 export function MateriaisDestaque() {
