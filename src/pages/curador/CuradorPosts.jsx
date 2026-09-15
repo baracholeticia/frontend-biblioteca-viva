@@ -321,14 +321,14 @@ export function CuradorPosts() {
                 description: form.description, publicationDate: new Date().toISOString(),
                 ...authorPayload,
             };
-            
+
             let payload = {};
             switch (form.type) {
                 case 'Essay': payload = { ...basePayload, content: form.content, rate: Number(form.rate), theme: form.theme, themeDescription: form.themeDescription, feedback: form.feedback }; break;
                 case 'Cordel': payload = { ...basePayload, content: form.content, rhymeScheme: form.rhymeScheme }; break;
                 case 'Tale': payload = { ...basePayload, content: form.content, genre: form.genre }; break;
                 case 'ShortStory': case 'Article': payload = { ...basePayload, content: form.content }; break;
-                case 'Other': 
+                case 'Other':
                     payload = { ...basePayload, content: form.content };
                     payload.url = (form.url && form.url.trim() !== '') ? form.url.trim() : null;
                     payload.imageUrl = (form.imageUrl && form.imageUrl.trim() !== '') ? form.imageUrl.trim() : null;
@@ -338,7 +338,7 @@ export function CuradorPosts() {
                 case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break;
                 default: payload = { ...basePayload };
             }
-            
+
             const endpointType = typeEndpoints[form.type];
             if (creating) { await createWork(endpointType, payload, imageFile); showToast('Post criado!', 'success'); }
             else { await updateWork(endpointType, editing, payload, imageFile); showToast('Post atualizado!', 'success'); }
@@ -474,71 +474,64 @@ export function CuradorPosts() {
                             </div>
                         )}
 
-                            {/* Upload Direto: Arrastar e Soltar (Para Artes e Infográficos) */}
-                            {['Art', 'Infographic'].includes(form.type) && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-                                    <label style={labelStyle}>Upload de Imagem</label>
+                        {/* Upload Direto: Arrastar e Soltar (Para Artes e Infográficos) */}
+                        {['Art', 'Infographic'].includes(form.type) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
+                                <label style={labelStyle}>Upload de Imagem</label>
 
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        style={{ display: 'none' }}
-                                        accept="image/*"
-                                        onChange={e => {
-                                            if (e.target.files && e.target.files.length > 0) {
-                                                setImageFile(e.target.files[0]);
-                                            }
-                                        }}
-                                    />
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    accept="image/*"
+                                    onChange={e => {
+                                        if (e.target.files && e.target.files.length > 0) {
+                                            setImageFile(e.target.files[0]);
+                                        }
+                                    }}
+                                />
 
-                                    {(imageFile || form.url) ? (
-                                        <div className="image-preview-container">
-                                            <img
-                                                src={imageFile ? URL.createObjectURL(imageFile) : form.url}
-                                                alt="Preview"
-                                                className="image-preview"
-                                            />
-                                            <div className="image-preview-actions">
-                                                <button
-                                                    type="button"
-                                                    className="btn-replace"
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                >
-                                                    <IconPencil size={14} /> Substituir
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="btn-remove-image"
-                                                    onClick={() => {
-                                                        setImageFile(null);
-                                                        setForm({ ...form, url: '' }); // Limpa a URL existente se houver
-                                                        if (fileInputRef.current) fileInputRef.current.value = '';
-                                                    }}
-                                                >
-                                                    <IconTrash size={14} /> Remover
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div
-                                            className={`drag-drop-zone ${isDragging ? 'active' : ''}`}
-                                            onDragOver={handleDragOver}
-                                            onDragLeave={handleDragLeave}
-                                            onDrop={handleDrop}
-                                            onClick={() => fileInputRef.current?.click()}
-                                        >
-                                            <svg className="drag-drop-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                <polyline points="17 8 12 3 7 8"></polyline>
-                                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                                            </svg>
-                                            <p className="drag-drop-text">Clique ou arraste a imagem para esta área</p>
-                                            <p className="drag-drop-subtext">Formatos aceitos: .JPG, .PNG, .WEBP</p>
+                                {(imageFile || form.url) ? (
+                                    <div className="image-preview-container">
+                                        <img
+                                            src={imageFile ? URL.createObjectURL(imageFile) : form.url}
+                                            alt="Preview"
+                                            className="image-preview"
+                                        />
+                                        <div className="image-preview-actions">
+                                            <button
+                                                type="button"
+                                                className="btn-replace"
+                                                onClick={() => fileInputRef.current?.click()}
+                                            >
+                                                <IconPencil size={14} /> Substituir
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn-remove-image"
+                                                onClick={() => {
+                                                    setImageFile(null);
+                                                    setForm({ ...form, url: '' }); // Limpa a URL existente se houver
+                                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                                }}
+                                            >
+                                                <IconTrash size={14} /> Remover
+                                            </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className={`drag-drop-zone ${isDragging ? 'active' : ''}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={() => fileInputRef.current?.click()}>
-                                        <svg className="drag-drop-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    <div
+                                        className={`drag-drop-zone ${isDragging ? 'active' : ''}`}
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <svg className="drag-drop-icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
                                         <p className="drag-drop-text">Clique ou arraste a imagem para esta área</p>
                                         <p className="drag-drop-subtext">Formatos aceitos: .JPG, .PNG, .WEBP</p>
                                     </div>
@@ -546,14 +539,25 @@ export function CuradorPosts() {
                             </div>
                         )}
 
-                        {/* Demais Campos Específicos */}
                         {!isBookClub && !isNews && (<>
-                            {['Multimedia', 'LibraLiterature'].includes(form.type) && (
+                            {['Multimedia', 'LibraLiterature'].includes(form.type) && (<>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label style={labelStyle}>URL do Vídeo (YouTube)</label>
+                                    <input
+                                        style={inputStyle}
+                                        value={form.url}
+                                        onChange={e => handleUrlChange(e.target.value)}
+                                        placeholder="https://www.youtube.com/watch?v=..."
+                                    />
+                                    {fetchingDuration && (
+                                        <span style={{ fontSize: 12, color: '#6b778c' }}>Buscando duração do vídeo...</span>
+                                    )}
+                                </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <label style={labelStyle}>Duração (mm:ss)</label>
                                     <input style={inputStyle} value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="Ex: 03:30" />
                                 </div>
-                            )}
+                            </>)}
                             {form.type === 'Cordel' && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Rimas</label><input style={inputStyle} value={form.rhymeScheme} onChange={e => setForm({ ...form, rhymeScheme: e.target.value })} /></div>)}
                             {form.type === 'Tale' && (<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><label style={labelStyle}>Gênero</label><input style={inputStyle} value={form.genre} onChange={e => setForm({ ...form, genre: e.target.value })} /></div>)}
                             {form.type === 'Essay' && (<>
@@ -670,7 +674,8 @@ export function CuradorPosts() {
                     <div style={{ background: '#fff', borderRadius: 16, padding: '32px 36px', maxWidth: 400, width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', fontFamily: 'Poppins, system-ui, sans-serif' }}>
                         <h3 style={{ color: '#0a2a57', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Excluir publicação</h3>
                         <p style={{ color: '#42526e', fontSize: 14, marginBottom: 24 }}>
-                            Tem certeza que deseja excluir <strong style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', display: 'inline-block', maxWidth: '100%' }}>{confirmDeletePost.title}</strong>? Esta ação não pode ser desfeita.                        </p>
+                            Tem certeza que deseja excluir <strong style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', display: 'inline-block', maxWidth: '100%' }}>{confirmDeletePost.title}</strong>? Esta ação não pode ser desfeita.
+                        </p>
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                             <button className="action-btn btn-view" onClick={() => setConfirmDeletePost(null)}>Cancelar</button>
                             <button className="action-btn btn-delete" onClick={handleConfirmDeletePost} style={{ background: '#d62828', color: '#fff' }}>
@@ -680,7 +685,8 @@ export function CuradorPosts() {
                     </div>
                 </div>
             )}
-        </CuradorLayout>    );
+        </CuradorLayout>
+    );
 }
 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: '#42526e' };
