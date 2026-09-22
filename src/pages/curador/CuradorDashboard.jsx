@@ -17,6 +17,9 @@ const categoryTranslations = {
     'Multimedia': 'Vídeo Autoral',
     'LibraLiterature': 'Literatura em Libras',
     'Poem': 'Poema',
+    'BookClub': 'Clube de Leitura',
+    'Other': 'Outras Produções',
+    'News': 'Notícias'
 };
 
 const ChevronIcon = ({ expanded }) => (

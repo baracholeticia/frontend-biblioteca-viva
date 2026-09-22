@@ -24,7 +24,9 @@ const categoryTranslations = {
   'Multimedia': 'Vídeo Autoral',
   'LibraLiterature': 'Literatura em Libras',
   'Poem': 'Poema',
-  'BookClub': 'Clube de Leitura'
+  'BookClub': 'Clube de Leitura',
+  'Other': 'Outras Produções',
+  'News': 'Notícias'
 };
 
 export function AdminDashboard() {
