@@ -20,7 +20,7 @@ export async function blockUser(id) {
 }
 
 export async function deleteUser(id) {
-    await api.delete(`/admin/${id}`);
+    await api.delete(`/admin/users/${id}`);
 }
 
 export async function getDashboardData() {
