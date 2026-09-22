@@ -26,13 +26,10 @@ export async function getWorkById(id, type = null) {
 }
 
 export async function createWork(type, data, imageFile = null) {
-    // Retiramos a exigência do "&& imageFile" daqui.
-    // Sempre usará FormData para esses três tipos.
-    if (['arts', 'infographics', 'news'].includes(type)) {
+    if (['arts', 'infographics', 'news', 'others'].includes(type)) {
         const formData = new FormData();
         formData.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
         
-        // Só anexa a imagem se ela existir
         if (imageFile) {
             formData.append('image', imageFile);
         }
@@ -46,12 +43,10 @@ export async function createWork(type, data, imageFile = null) {
 }
 
 export async function updateWork(type, id, data, imageFile = null) {
-    // Mesma lógica na edição
-    if (['arts', 'infographics', 'news'].includes(type)) {
+    if (['arts', 'infographics', 'news', 'others'].includes(type)) {
         const formData = new FormData();
         formData.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
         
-        // Só anexa a imagem se ela existir
         if (imageFile) {
             formData.append('image', imageFile);
         }

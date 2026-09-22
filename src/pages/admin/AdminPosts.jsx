@@ -414,7 +414,6 @@ export function AdminPosts() {
         case 'Other': 
           payload = { ...basePayload, content: form.content };
           payload.url = (form.url && form.url.trim() !== '') ? form.url.trim() : null;
-          payload.imageUrl = (form.imageUrl && form.imageUrl.trim() !== '') ? form.imageUrl.trim() : null;
           break;
         case 'Multimedia': case 'LibraLiterature': payload = { ...basePayload, url: form.url, duration: convertToIsoDuration(form.duration) }; break;
         case 'Art': case 'Infographic': payload = { ...basePayload, url: form.url }; break;
@@ -546,7 +545,7 @@ export function AdminPosts() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <label style={labelStyle}>Turma</label>
-                    <input style={inputStyle} value={form.studentClass} onChange={e => setForm({ ...form, studentClass: e.target.value })} placeholder="Ex: 9º A" />
+                    <input style={inputStyle} value={form.studentClass} onChange={e => setForm({ ...form, studentClass: e.target.value })} placeholder="Ex: 2º ano A" />
                   </div>
                 </>)}
 
@@ -561,15 +560,8 @@ export function AdminPosts() {
                 {/* Campos específicos para Outras Produções */}
                 {form.type === 'Other' && (<>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <label style={labelStyle}>URL Externa (Opcional)</label>
+                    <label style={labelStyle}>URL do Youtube (Opcional)</label>
                     <input style={inputStyle} value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://..." />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <label style={labelStyle}>Imagem(Opcional)</label>
-                    <input style={inputStyle} value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://..." />
-                    {form.imageUrl && (
-                        <img src={form.imageUrl} alt="Preview" style={{ marginTop: 8, height: 100, width: 140, objectFit: 'cover', borderRadius: 6 }} onError={e => e.target.style.display = 'none'} />
-                    )}
                   </div>
                 </>)}
 
@@ -585,9 +577,9 @@ export function AdminPosts() {
                 )}
 
                 {/* Upload Direto: Arrastar e Soltar */}
-                {['Art', 'Infographic', 'News'].includes(form.type) && (
+                {['Art', 'Infographic', 'News', 'Other'].includes(form.type) && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-                        <label style={labelStyle}>Imagem(opcional)</label>
+                        <label style={labelStyle}>Imagem(Opcional)</label>
                         
                         <input 
                             type="file" 
@@ -601,16 +593,24 @@ export function AdminPosts() {
                             }} 
                         />
 
-                        {(imageFile || form.url) ? (
+                        {(imageFile || (form.type === 'Other' ? form.imageUrl : form.url)) ? (
                             <div className="image-preview-container">
                                 <img 
-                                    src={imageFile ? URL.createObjectURL(imageFile) : form.url} 
+                                    src={imageFile ? URL.createObjectURL(imageFile) : (form.type === 'Other' ? form.imageUrl : form.url)} 
                                     alt="Preview" 
                                     className="image-preview" 
                                 />
                                 <div className="image-preview-actions">
                                     <button type="button" className="btn-replace" onClick={() => fileInputRef.current?.click()}><IconPencil size={14} /> Substituir</button>
-                                    <button type="button" className="btn-remove-image" onClick={() => { setImageFile(null); setForm({ ...form, url: '' }); if (fileInputRef.current) fileInputRef.current.value = ''; }}><IconTrash size={14} /> Remover</button>
+                                    <button type="button" className="btn-remove-image" onClick={() => { 
+                                      setImageFile(null); 
+                                      if (form.type === 'Other') {
+                                        setForm({ ...form, imageUrl: '' });
+                                      } else {
+                                        setForm({ ...form, url: '' });
+                                      }
+                                      if (fileInputRef.current) fileInputRef.current.value = ''; 
+                                    }}><IconTrash size={14} /> Remover</button>
                                 </div>
                             </div>
                         ) : (

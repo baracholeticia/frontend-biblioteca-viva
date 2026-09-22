@@ -969,8 +969,13 @@ export function PostDetail() {
                             />
                         </div>
                     ) : (
-                        post.url && !imageError && (
-                            <img src={post.url} alt={post.title} className="post-hero-image" onError={() => setImageError(true)} />
+                        (post.type === 'Other' ? post.imageUrl : post.url) && !imageError && (
+                            <img 
+                                src={post.type === 'Other' ? post.imageUrl : post.url} 
+                                alt={post.title} 
+                                className="post-hero-image" 
+                                onError={() => setImageError(true)} 
+                            />
                         )
                     )}
 
