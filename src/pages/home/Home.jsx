@@ -21,9 +21,9 @@ export function Home() {
             <div id="acervo">
                 <Sections />
                 <Noticias />
+                <JornalEscola />
                 <MateriaisDestaque />
                 <ClubeLeitura />
-                <JornalEscola />
                 <Essays />
                 <Literaturas />
                 <ContosCronicas />
