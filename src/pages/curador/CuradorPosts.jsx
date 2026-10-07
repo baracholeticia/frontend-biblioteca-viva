@@ -68,7 +68,7 @@ function AuthorAutocomplete({ value, onChange, users }) {
             />
             {open && suggestions.length > 0 && (
                 <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
                     background: 'white', border: '1px solid #dfe1e6', borderRadius: 8,
                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4, overflow: 'hidden'
                 }}>
@@ -386,7 +386,7 @@ export function CuradorPosts() {
             </div>
 
             {(editing !== null || creating) && (
-                <div className="admin-card" style={{ marginBottom: 24, borderLeft: '4px solid #d62828' }}>
+                <div className="admin-card" style={{ marginBottom: 24, borderLeft: '4px solid #d62828', position: 'relative', zIndex: 50, overflow: 'visible' }}>
                     <h2 style={{ color: '#0a2a57', fontSize: 17, fontWeight: 700, marginBottom: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
                         <IconPencil size={18} /> {creating ? 'Criar Post' : 'Editar Post'}
                     </h2>
